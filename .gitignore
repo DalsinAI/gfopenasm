@@ -3,3 +3,5 @@ src/*.o
 *.o
 tests/out/
 vasm*_*
+__pycache__/
+*.pyc

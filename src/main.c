@@ -23,6 +23,7 @@ static int select_cpu(const char *n)
 {
   if (!strcmp(n, "68k") || !strcmp(n, "m68k")) { cpu = &cpu_m68k; return 1; }
   if (!strcmp(n, "ppc")) { cpu = &cpu_ppc; return 1; }
+  if (!strcmp(n, "arm")) { cpu = &cpu_arm; return 1; }
   return 0;
 }
 static int select_syntax(const char *n)
@@ -36,7 +37,7 @@ static void usage(void)
 {
   fprintf(stderr,
     "gfasm " GFASM_VERSION " - clean-room vasm-compatible assembler (MIT)\n"
-    "usage: gfasm [-cpu=68k] [-syntax=mot] [options] file\n"
+    "usage: gfasm [-cpu=68k|ppc|arm] [-syntax=mot|std] [options] file\n"
     "  -F<fmt>  output format: hunk, hunkexe, elf, bin\n"
     "  -o file  output file (default a.out)\n"
     "  -I path  include path     -D name[=val] define symbol\n"
@@ -134,6 +135,7 @@ int main(int argc, char **argv)
     if (!strncmp(a, "-F", 2)) continue;
     if (!strncmp(a, "-cpu=", 5) || !strncmp(a, "-syntax=", 8)) continue;
     if (syntax->option && syntax->option(a)) continue;
+    if (!strncmp(a, "-opt-", 5) && cpu->option(a)) continue;   /* not "-o pt-..." */
     if (!strcmp(a, "-o")) { if (++i < argc) output_name = argv[i]; continue; }
     if (!strncmp(a, "-o", 2) && a[2]) { output_name = a + 2; continue; }
     if (!strcmp(a, "-I")) { if (++i < argc) add_incpath(argv[i]); continue; }
@@ -207,6 +209,7 @@ int main(int argc, char **argv)
   curpos.file = NULL;
   curpos.text = NULL;
   syntax->finish();
+  if (cpu->parse_done) cpu->parse_done();
 
   /* undefined symbols become imports */
   {
@@ -223,6 +226,7 @@ int main(int argc, char **argv)
   if (!sec_first) default_section();
   resolve_sections();
   finalize_sections();
+  if (cpu->post_layout) cpu->post_layout();
   if (errcount) return 1;
   if (!output_name) output_name = "a.out";
   f = fopen(output_name, "wb");

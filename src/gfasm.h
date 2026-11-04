@@ -146,6 +146,7 @@ typedef struct symbol {
 symbol *sym_lookup(const char *name);
 symbol *sym_get(const char *name);     /* create as S_NONE if missing */
 symbol *sym_new_internal(void);
+symbol *sym_new_anon(const char *name);   /* listed, not in the hash table */
 extern symbol *sym_first, *sym_last;
 void sym_define_label(symbol *s, struct section *sec, struct atom *a);
 int  sym_is_defined(symbol *s);
@@ -179,7 +180,7 @@ typedef struct atom {
     struct { void *insn; } insn;
     struct { int esize; int ftype; int n; dataitem *items; int reldiff; } data;
     struct { expr *count; int esize; expr *fill; int ftype; int uninit; } space;
-    struct { ival align; ival offset; int nopfill; int bitalign; } align;
+    struct { ival align; ival offset; int nopfill; int bitalign; expr *fill; int fillsize; ival maxpad; } align;
     struct { uint8_t *d; size_t n; } bytes;
     struct { expr *target; expr *fill; } rorg;
   } u;
@@ -302,8 +303,12 @@ typedef struct cpu_module {
   int  elf_machine;
   /* ELF relocation type for a relocation, -1 if unsupported */
   int  (*elf_reloc)(struct reloc *r);
+  int  elf_rel;        /* ELF: REL (addend in place) instead of RELA */
+  uint32_t elf_flags;  /* ELF e_flags */
+  void (*parse_done)(void);    /* after the source was read */
+  void (*post_layout)(void);   /* after the final pass, before output */
 } cpu_module;
-extern cpu_module cpu_ppc;
+extern cpu_module cpu_ppc, cpu_arm;
 
 typedef struct syntax_module {
   const char *name;

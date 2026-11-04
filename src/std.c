@@ -168,8 +168,8 @@ static int split_args(const char *s, char ***out)
     }
     if (q) { if (*p == '\\' && p[1]) p++; else if (*p == q) q = 0; }
     else if (*p == '"' || *p == '\'') q = *p;
-    else if (*p == '(' || *p == '[') par++;
-    else if (*p == ')' || *p == ']') par--;
+    else if (*p == '(' || *p == '[' || *p == '{') par++;
+    else if (*p == ')' || *p == ']' || *p == '}') par--;
   }
   *out = v;
   return n;
@@ -248,36 +248,43 @@ static void align_data(int n)
   }
 }
 
+/* one atom per item, so that "$" in an item is the address of that item */
 static void data(char **ops, int nops, int esize, int ftype, int strings, int zero, int ua)
 {
-  atom *a;
   int i;
-  ival total = 0;
   if (!ua) align_data(esize > 8 ? 8 : esize);
-  a = add_atom(AT_DATA);
-  a->u.data.esize = esize;
-  a->u.data.ftype = ftype;
-  a->u.data.items = xcalloc(nops * 2 + 1, sizeof(dataitem));
   for (i = 0; i < nops; i++) {
-    dataitem *it = &a->u.data.items[a->u.data.n];
     const char *o = ops[i];
-    if (strings && *o == '"') {
+    atom *a;
+    dataitem *it;
+    expr *e = NULL;
+    if (!(strings && *o == '"')) {
+      default_section();
+      line_anchor = NULL;
+      stmt_sec = cursec;
+      stmt_prev = cursec->last;
+      e = pexpr(o);
+    }
+    a = add_atom(AT_DATA);
+    a->u.data.esize = esize;
+    a->u.data.ftype = ftype;
+    a->u.data.items = xcalloc(2, sizeof(dataitem));
+    it = &a->u.data.items[0];
+    a->u.data.n = 1;
+    if (!e) {
       it->slen = parse_string(o, &it->str);
-      a->u.data.n++;
-      total += it->slen;
+      a->size = it->slen;
       if (zero && i == nops - 1) {
         dataitem *z = &a->u.data.items[a->u.data.n++];
         z->str = xcalloc(1, 1);
         z->slen = 1;
-        total++;
+        a->size++;
       }
       continue;
     }
-    it->e = pexpr(o);
-    a->u.data.n++;
-    total += esize;
+    it->e = e;
+    a->size = esize;
   }
-  a->size = total;
 }
 
 static void space(const char *cnt, const char *fill)
@@ -289,12 +296,12 @@ static void space(const char *cnt, const char *fill)
   else a->u.space.uninit = 1;
 }
 
-static void do_align(ival bytes, char **ops, int nops)
+static void do_align(ival bytes, char **ops, int nops, int fillsize)
 {
   atom *a = add_atom(AT_ALIGN);
-  (void)ops; (void)nops;
   a->u.align.align = bytes;
-  /* code sections are padded with the cpu's nop elsewhere; std pads with zero */
+  if (nops > 1 && *skip_ws(ops[1])) { a->u.align.fill = pexpr(ops[1]); a->u.align.fillsize = fillsize; }
+  if (nops > 2 && *skip_ws(ops[2])) { ival m = 0; cexpr(ops[2], &m); a->u.align.maxpad = m; }
 }
 
 static void set_section(const char *name, const char *flags, const char *type)
@@ -474,7 +481,8 @@ static int directive(const char *d, const char *rest, char **ops, int nops)
       IS("balign") || IS("balignw") || IS("balignl")) {
     int bytes = IS("balign") || IS("balignw") || IS("balignl") || (IS("align") && cpu->elf_machine == 3);
     if (nops < 1 || !cexpr(ops[0], &v)) return 1;
-    do_align(bytes ? v : ((ival)1 << v), ops, nops);
+    do_align(bytes ? v : ((ival)1 << v), ops, nops,
+             (d[strlen(d) - 1] == 'w' || d[strlen(d) - 1] == 'W') ? 2 : (d[strlen(d) - 1] == 'l' || d[strlen(d) - 1] == 'L') ? 4 : 1);
     return 1;
   }
   if (IS("text")) { set_section(".text", "acrx", NULL); return 1; }
@@ -515,7 +523,8 @@ static int directive(const char *d, const char *rest, char **ops, int nops)
     cexpr(ops[1], &v);
     if (nops > 2) cexpr(ops[2], &al);
     if (IS("comm")) {
-      s->type = S_COMMON; s->val = v; s->align = al ? al : (v < 8 ? 4 : 8);
+      s->type = S_COMMON; s->val = v;
+      s->align = al ? al : (v < 8 || cpu->elf_machine == 40) ? 4 : 8;   /* ARM: 4 (oracle) */
       s->flags |= SF_EXPORT | SF_DEFINED;
     } else {
       section *save = cursec;
@@ -676,7 +685,11 @@ static void std_parse_line(const char *raw)
   p = skip_ws(p);
   nops = split_args(p, &ops);
   if ((*w == '.' || nodotneeded) && dname[0] && directive(dname, p, ops, nops)) goto done;
-  if (cpu->directive && *w == '.' && dname[0] && cpu->directive(w, p)) goto done;
+  if (cpu->directive && *w == '.' && dname[0]) {
+    char dd[48];
+    snprintf(dd, sizeof dd, ".%s", dname);
+    if (cpu->directive(dd, p)) goto done;
+  }
   {
     macro *m = find_macro(w, l);
     if (m) {

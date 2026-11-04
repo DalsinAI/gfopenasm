@@ -62,6 +62,18 @@ symbol *sym_new_internal(void)
   return s;
 }
 
+symbol *sym_new_anon(const char *name)
+{
+  symbol *s = xcalloc(1, sizeof(*s));
+  s->name = xstrdup(name);
+  s->dispname = s->name;
+  s->type = S_NONE;
+  s->order = ++sym_order;
+  if (sym_last) sym_last->lnext = s; else sym_first = s;
+  sym_last = s;
+  return s;
+}
+
 void sym_define_label(symbol *s, section *sec, atom *a)
 {
   s->type = S_LABEL;
@@ -295,6 +307,18 @@ static void emit_data_value(section *s, bbuf *b, expr *e, int esize,
     return;
   }
   if (r.isflt) { r.v = (ival)r.f; r.isflt = 0; }
+  if (r.bad && e->op == X_SUB && !reldiff) {
+    /* sym - <label in this section>: pc-relative data */
+    eres la, rb;
+    eval_expr(e->l, &la);
+    eval_expr(e->r, &rb);
+    if (!la.bad && !rb.bad && (la.sec || la.ext) && rb.sec == s && !rb.ext && !la.isflt) {
+      ival av = la.v - rb.v + (ival)b->n;
+      add_reloc(s, b->n, esize * 8, R_PC, la.sec, la.ext, av);
+      put_be(b, (uval)av, esize);
+      return;
+    }
+  }
   if (r.bad) {
     error("illegal relocation");
     bb_fill(b, 0, esize);
@@ -402,6 +426,7 @@ static int sizing_pass(void)
       case AT_ALIGN:
         a->off = pc;
         sz = align_pad(s, pc, a->u.align.align, a->u.align.offset);
+        if (a->u.align.maxpad > 0 && sz > a->u.align.maxpad) sz = 0;
         if (a->u.align.align > s->align) s->align = a->u.align.align;
         break;
       case AT_BYTES:
@@ -516,7 +541,15 @@ void finalize_sections(void)
       }
       case AT_ALIGN: {
         ival n = a->size;
-        if (a->u.align.nopfill && s->type == ST_CODE) {
+        if (a->u.align.fill) {
+          ival fv = 0, k;
+          int fs = a->u.align.fillsize ? a->u.align.fillsize : 1;
+          eval_const(a->u.align.fill, &fv);
+          k = ((s->flags & SEC_ABS) ? s->org : 0) + pc;
+          while (n > 0 && (k % fs)) { bb_byte(b, 0); n--; k++; }
+          while (n >= fs) { put_be(b, (uval)fv, fs); n -= fs; }
+          while (n-- > 0) bb_byte(b, 0);
+        } else if (a->u.align.nopfill && s->type == ST_CODE) {
           int plen; const uint8_t *pp;
           if ((pc & 1) && n) { bb_byte(b, 0); n--; }
           pp = fill_pattern(s, &plen);

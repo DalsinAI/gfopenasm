@@ -3515,5 +3515,6 @@ cpu_module cpu_m68k = {
   m68k_parse_reg,
   m68k_define_symbols,
   NULL,
-  1, 2, 0, 32, 4, NULL
+  1, 2, 0, 32, 4, NULL,
+  0, 0, NULL, NULL
 };

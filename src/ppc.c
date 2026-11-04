@@ -915,5 +915,6 @@ cpu_module cpu_ppc = {
   NULL,
   ppc_define_symbols,
   NULL,
-  1, 4, 0, 32, 20, ppc_elf_reloc
+  1, 4, 0, 32, 20, ppc_elf_reloc,
+  0, 0, NULL, NULL
 };
