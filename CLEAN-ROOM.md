@@ -30,6 +30,10 @@ no vasm code.
 | Motorola *MC68040* and *MC68060 User's Manuals* | CINV/CPUSH/MOVE16/PFLUSH(An)/PTEST(An)/PLPA/LPSTOP |
 | *The AmigaDOS Manual* (hunk format chapter) and the public `dos/doshunks.h` constants | Amiga hunk object and executable format |
 | *System V ABI: ELF* and the m68k processor supplement | ELF32 big-endian relocatable objects, R_68K_* relocation numbers |
+| IBM/Motorola *PowerPC Microprocessor Family: The Programming Environments for 32-bit Microprocessors* and *AltiVec Technology Programming Environments Manual* | PowerPC and AltiVec instruction encodings, simplified (extended) mnemonics |
+| *System V ABI PowerPC Processor Supplement* and the PowerPC EABI | R_PPC_* relocation numbers, small-data relocations |
+| Public WarpOS/PowerUP hunk constants (`HUNK_PPC_CODE` 0x4e9, `HUNK_RELRELOC26` 0x4ec, `EXT_RELREF26` 229) | PowerPC Amiga hunk objects |
+| vasm 2.0f oracle binaries in `~/AmiCradle/stoves/vasm-oracles/2.0f/bin` on daletop (`vasmppc_std`, `vasmppc_mot`, ...), built by the stove builder from the pinned vasm archive | black-box oracle only, as for 68k |
 | vasm 2.0f binary (`vasmm68k_mot`, m68k backend 2.8c, mot syntax 3.19f) in the `os32` stove on daletop | black-box oracle only: byte-for-byte comparison of outputs for our own test sources |
 
 Real-world *test inputs* (not references, never copied into this repository):

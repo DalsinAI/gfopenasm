@@ -14,15 +14,18 @@ out_module *outmod;
 int opt_keepempty, opt_kick1hunks, opt_hunkpad = 0x4e71, opt_databss;
 char *idnt_name;
 static FILE *of;
+static int out_le;    /* little-endian output (ELF for little-endian cpus) */
 
 static void w32(uint32_t v)
 {
   uint8_t b[4] = { v >> 24, v >> 16, v >> 8, v };
+  if (out_le) { uint8_t t = b[0]; b[0] = b[3]; b[3] = t; t = b[1]; b[1] = b[2]; b[2] = t; }
   fwrite(b, 1, 4, of);
 }
 static void w16(uint32_t v)
 {
   uint8_t b[2] = { v >> 8, v };
+  if (out_le) { uint8_t t = b[0]; b[0] = b[1]; b[1] = t; }
   fwrite(b, 1, 2, of);
 }
 static void wbytes(const void *p, size_t n) { fwrite(p, 1, n, of); }
@@ -147,6 +150,7 @@ static void collect_hunks(void)
 
 static uint32_t hunk_type(section *s)
 {
+  if (s->type == ST_CODE && cpu == &cpu_ppc) return 0x4e9;   /* HUNK_PPC_CODE */
   return s->type == ST_CODE ? HUNK_CODE : s->type == ST_DATA ? HUNK_DATA : HUNK_BSS;
 }
 
@@ -167,7 +171,7 @@ static void write_hunk_data(section *s)
   size_t n = s->data.n;
   size_t pad = (4 - n % 4) % 4;
   wbytes(s->data.d, n);
-  if (s->type == ST_CODE && pad == 2 && !(n & 1)) w16(opt_hunkpad);
+  if (s->type == ST_CODE && pad == 2 && !(n & 1) && cpu == &cpu_m68k) w16(opt_hunkpad);
   else while (pad--) fputc(0, of);
 }
 
@@ -239,6 +243,7 @@ static int ext_type_for(reloc *r)
     if (r->size == 16) return opt_kick1hunks ? 0x83 : 0x8a; /* EXT_ABSREF16 */
     if (r->size == 8) return opt_kick1hunks ? 0x84 : 0x8b;  /* EXT_ABSREF8 */
   } else if (r->type == R_PC) {
+    if (r->size == 24) return 0xe5;                       /* EXT_RELREF26 */
     if (r->size == 32) return 0x88;                       /* EXT_RELREF32 */
     if (r->size == 16) return 0x83;                       /* EXT_RELREF16 */
     if (r->size == 8) return 0x84;                        /* EXT_RELREF8 */
@@ -339,7 +344,8 @@ static void check_unsupported_relocs(section *s, int exe)
       continue;
     }
     if (r->type == R_ABS && r->size == 32) continue;
-    if (!exe && r->type == R_PC && (r->size == 16 || r->size == 8 || r->size == 32)) continue;
+    if (!exe && r->type == R_PC && (r->size == 16 || r->size == 8 || r->size == 32 || r->size == 24)) continue;
+    if (!exe && r->type == R_SD && r->size == 16) continue;
     error("reloc type %s, size %d (symbol %s + 0x%lx) not supported",
           r->type == R_ABS ? "abs" : r->type == R_PC ? "pcrel" : "sd", r->size,
           r->tsec ? r->tsec->name : "?", (unsigned long)r->addend);
@@ -373,6 +379,8 @@ static int hunk_write(FILE *f, const char *outname)
       write_relocs(s, R_PC, 16, HUNK_RELOC16, 0);
       write_relocs(s, R_PC, 8, HUNK_RELOC8, 0);
       write_relocs(s, R_PC, 32, HUNK_RELRELOC32, 0);
+      write_relocs(s, R_PC, 24, 0x4ec, 0);   /* HUNK_RELRELOC26 */
+      write_relocs(s, R_SD, 16, HUNK_DREL16, 0);
     }
     write_ext(s, i == 0);
     write_symbols(s);
@@ -492,6 +500,7 @@ typedef struct esym { uint32_t name, value, size; uint8_t info, other; uint16_t 
 
 static int elf_reloc_type(reloc *r)
 {
+  if (cpu->elf_reloc) return cpu->elf_reloc(r);
   if (r->type == R_ABS) return r->size == 32 ? 1 : r->size == 16 ? 2 : r->size == 8 ? 3 : -1;
   if (r->type == R_PC) return r->size == 32 ? 4 : r->size == 16 ? 5 : r->size == 8 ? 6 : -1;
   return -1;
@@ -518,6 +527,7 @@ static int elf_write(FILE *f, const char *outname)
   symbol **lv; int nl = 0;
   (void)outname;
   of = f;
+  out_le = !cpu->big_endian;
   for (s = sec_first; s; s = s->next)
     if (sec_output(s)) { ps = xrealloc(ps, (nps + 1) * sizeof(*ps)); ps[nps++] = s; }
   for (i = 0; i < nps; i++) if (ps[i]->relocs) nrel++;
@@ -589,7 +599,10 @@ static int elf_write(FILE *f, const char *outname)
           if (!used) continue;
         }
       } else if (y->type == S_COMMON) {
-      } else if ((y->type == S_EXPR || y->type == S_SET) && global) {
+      } else if (y->type == S_EXPR || y->type == S_SET) {
+        ival cv;
+        if (!eval_const(y->e, &cv)) continue;
+        if (!global && opt_nosym) continue;
       } else continue;
       syms = xrealloc(syms, (nsyms + 1) * sizeof(esym));
       memset(&syms[nsyms], 0, sizeof(esym));
@@ -598,7 +611,8 @@ static int elf_write(FILE *f, const char *outname)
       if (y->type == S_LABEL) {
         syms[nsyms].value = (uint32_t)y->val;
         syms[nsyms].shndx = 1 + idx;
-        syms[nsyms].info = (global ? ((y->flags & SF_WEAK) ? 0x20 : 0x10) : 0) | 0;
+        syms[nsyms].info = (global ? ((y->flags & SF_WEAK) ? 0x20 : 0x10) : 0) | (y->stype & 15);
+        syms[nsyms].size = (uint32_t)y->ssize;
       } else if (y->type == S_IMPORT) {
         syms[nsyms].info = (y->flags & SF_WEAK) ? 0x20 : 0x10;
         syms[nsyms].shndx = 0;
@@ -611,7 +625,7 @@ static int elf_write(FILE *f, const char *outname)
         ival v = 0;
         eval_const(y->e, &v);
         syms[nsyms].value = (uint32_t)v;
-        syms[nsyms].info = 0x10;
+        syms[nsyms].info = global ? 0x10 : 0;
         syms[nsyms].shndx = 0xfff1;
       }
       nsyms++;
@@ -643,8 +657,9 @@ static int elf_write(FILE *f, const char *outname)
     /* header */
     {
       uint8_t id[16] = { 0x7f, 'E', 'L', 'F', 1, 2, 1, 0 };
+      if (out_le) id[5] = 1;
       wbytes(id, 16);
-      w16(1); w16(4); w32(1); w32(0); w32(0); w32((uint32_t)shoff); w32(0);
+      w16(1); w16(cpu->elf_machine); w32(1); w32(0); w32(0); w32((uint32_t)shoff); w32(0);
       w16(52); w16(0); w16(0); w16(40); w16(nsh); w16(shstr_idx);
     }
     for (i = 0; i < nps; i++)
@@ -657,7 +672,7 @@ static int elf_write(FILE *f, const char *outname)
       section *t = ps[i];
       w32(sh_name[i]);
       w32(t->type == ST_BSS ? 8 : 1);
-      w32(t->type == ST_CODE ? 6 : 3);
+      w32(t->elfflags ? (uint32_t)t->elfflags : t->type == ST_CODE ? 6 : 3);
       w32(0);
       w32((uint32_t)secoff[i]);
       w32((uint32_t)t->size);

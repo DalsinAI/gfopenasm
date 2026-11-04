@@ -1,6 +1,6 @@
 CC ?= cc
 CFLAGS ?= -O2 -g -std=c11 -Wall -Wextra -Wno-unused-parameter
-SRCS = src/main.c src/util.c src/expr.c src/asm.c src/mot.c src/m68k.c src/output.c
+SRCS = src/main.c src/util.c src/expr.c src/asm.c src/mot.c src/std.c src/m68k.c src/ppc.c src/output.c
 OBJS = $(SRCS:.c=.o)
 
 all: gfasm

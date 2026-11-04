@@ -5,7 +5,7 @@
 # and the source is assembled in its own directory with those options.
 #   VASM=/path/to/vasmm68k_mot tests/realworld.sh tests/realworld.list
 top=$(cd "$(dirname "$0")/.." && pwd)
-G="$top/gfasm"
+G="${GFASM:-$top/gfasm}"
 : "${VASM:?set VASM to the vasmm68k_mot oracle binary}"
 list=${1:-$top/tests/realworld.list}
 tmp=$(mktemp -d)

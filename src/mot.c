@@ -1379,6 +1379,8 @@ void mot_init(void)
   set_internal(sym_reptn, -1);
   sym_narg = sym_get("NARG");
   sym_carg = sym_get("CARG");
+  sym_reptn->flags |= SF_INTERNAL; sym_narg->flags |= SF_INTERNAL; sym_carg->flags |= SF_INTERNAL;
+  sym_rs->flags |= SF_INTERNAL; sym_fo->flags |= SF_INTERNAL;
   if (opt_devpac || opt_phxass) macro_args_max = 35;
   if (opt_devpac) ident_dots = 1;
 }
@@ -1389,3 +1391,6 @@ void mot_finish(void)
   if (collecting_rept) error("missing endr");
   if (cond_level) error("missing endif");
 }
+
+static int mot_option(const char *o) { (void)o; return 0; }
+syntax_module syntax_mot = { "mot", mot_init, mot_parse_line, mot_finish, mot_option };
