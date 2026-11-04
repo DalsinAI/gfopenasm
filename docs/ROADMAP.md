@@ -8,7 +8,7 @@ on a test corpus (see CLEAN-ROOM.md).
 
 | Phase | Target | vasm equivalent | Outputs | Estimate | Order rationale |
 |---|---|---|---|---|---|
-| 1 | Motorola 68000–68060, CPU32, 68881/2, 68851; `mot` syntax | `vasmm68k_mot` | hunk, hunkexe, ELF, bin | in progress | our Amiga build tools use it today |
+| 1 | Motorola 68000–68060, CPU32, 68881/2, 68851; `mot` syntax | `vasmm68k_mot` | hunk, hunkexe, ELF, bin | done (corpus + real-world pass) | our Amiga build tools use it today |
 | 2 | PowerPC (32-bit), `mot` and `std` syntax | `vasmppc_mot`, `vasmppc_std` | ELF, hunk (WarpOS/PPC hunks), bin | ~2 agent-days | AmigaOS 4 / WarpOS / MorphOS targets; the `std` syntax module is reused by ARM and x86 |
 | 3 | ARM (A32/Thumb, ARMv4–v6) | `vasmarm_std` | ELF, bin | ~2 agent-days | Raspberry Pi bring-up stubs |
 | 4 | x86 (i386 and x86-64) | `vasmx86_std` | ELF, bin | ~3–4 agent-days (largest ISA, ModR/M/SIB and prefix rules) | host-side helper code |
@@ -31,7 +31,7 @@ Shared work that the phases pick up along the way:
 - [x] 68k encoder: integer ISA 68000–68060, FPU, MMU, 040/060 extras
 - [x] vasm default optimisations (manual chapter 19.6)
 - [x] outputs: hunk, hunkexe, ELF, bin
-- [ ] corpus passes byte-for-byte against the oracle
-- [ ] real-world sources (Chocolate Doom asm, demo sources) pass
+- [x] corpus passes byte-for-byte against the oracle (30/30)
+- [x] real-world sources pass (103/103: AmiWind engine asm, the SDL2 c2p used by Chocolate Doom, 10 public demo/tool repos)
 - [ ] listing file (`-L`), with format parity as a stretch goal
 - [ ] `-devpac`/`-phxass` compatibility modes (partial so far)

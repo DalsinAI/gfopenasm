@@ -1,0 +1,93 @@
+-Fhunk -I@RW@/FPGAArcade_amiga_code/bootrom -I@RW@/FPGAArcade_amiga_code -I@NDK@ -I@NDK@/lvo | @RW@/FPGAArcade_amiga_code/bootrom/bootrom.s
+-Fhunk -I@RW@/FPGAArcade_amiga_code/addmem -I@RW@/FPGAArcade_amiga_code -I@NDK@ -I@NDK@/lvo | @RW@/FPGAArcade_amiga_code/addmem/addmem.asm
+-Fhunk -m68020 -I@RW@/FPGAArcade_amiga_code/oled -I@RW@/FPGAArcade_amiga_code -I@NDK@ -I@NDK@/lvo | @RW@/FPGAArcade_amiga_code/oled/oled.s
+-Fhunk -I@RW@/FPGAArcade_amiga_code/usb -I@RW@/FPGAArcade_amiga_code -I@NDK@ -I@NDK@/lvo | @RW@/FPGAArcade_amiga_code/usb/addconfig.s
+-Fhunk -I@RW@/FPGAArcade_amiga_code/poseidon -I@RW@/FPGAArcade_amiga_code -I@NDK@ -I@NDK@/lvo | @RW@/FPGAArcade_amiga_code/poseidon/loader.s
+-Fhunk -I@RW@/FPGAArcade_amiga_code/timer -I@RW@/FPGAArcade_amiga_code -I@NDK@ -I@NDK@/lvo | @RW@/FPGAArcade_amiga_code/timer/timer.s
+-Fhunk -m68020 -I@RW@/FPGAArcade_amiga_code/eth -I@RW@/FPGAArcade_amiga_code -I@NDK@ -I@NDK@/lvo | @RW@/FPGAArcade_amiga_code/eth/reseteth.s
+-Fhunk -m68020 -I@RW@/FPGAArcade_amiga_code/rtg -I@RW@/FPGAArcade_amiga_code -I@NDK@ -I@NDK@/lvo | @RW@/FPGAArcade_amiga_code/rtg/replay.card.asm
+-Fhunk -I@RW@/FPGAArcade_amiga_code/rtc -I@RW@/FPGAArcade_amiga_code -I@NDK@ -I@NDK@/lvo | @RW@/FPGAArcade_amiga_code/rtc/battclock.s
+-Fhunk -I@RW@/KONEY_crippled_cyborg_amiga -I@RW@/KONEY_crippled_cyborg_amiga -I@NDK@ -I@NDK@/lvo | @RW@/KONEY_crippled_cyborg_amiga/Blitter-Register-List.S
+-Fhunk -I@RW@/KONEY_crippled_cyborg_amiga -I@RW@/KONEY_crippled_cyborg_amiga -I@NDK@ -I@NDK@/lvo | @RW@/KONEY_crippled_cyborg_amiga/CRIPPLED_CYBORG_MAIN.s
+-Fhunk -I@RW@/KONEY_crippled_cyborg_amiga -I@RW@/KONEY_crippled_cyborg_amiga -I@NDK@ -I@NDK@/lvo | @RW@/KONEY_crippled_cyborg_amiga/PhotonsMiniWrapper1.04!.S
+-Fhunk -I@RW@/KONEY_crippled_cyborg_amiga -I@RW@/KONEY_crippled_cyborg_amiga -I@NDK@ -I@NDK@/lvo | @RW@/KONEY_crippled_cyborg_amiga/sprite_KONEY.s
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/Twister -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/Twister/Twister_vasm.s
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/Twister/lwmf -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/Twister/lwmf/lwmf_hardware_vasm.s
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/Twister/lwmf -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/Twister/lwmf/lwmf_math_vasm.s
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/Twister/lwmf/ptplayer -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/Twister/lwmf/ptplayer/ptplayer.asm
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/Shadebobs -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/Shadebobs/Shadebobs_vasm.s
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/Shadebobs/lwmf -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/Shadebobs/lwmf/lwmf_hardware_vasm.s
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/Shadebobs/lwmf -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/Shadebobs/lwmf/lwmf_math_vasm.s
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/Shadebobs/lwmf/ptplayer -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/Shadebobs/lwmf/ptplayer/ptplayer.asm
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/SineScroller -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/SineScroller/SineScroller_Assets.s
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/SineScroller -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/SineScroller/SineScroller_vasm.s
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/SineScroller/lwmf -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/SineScroller/lwmf/lwmf_hardware_vasm.s
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/SineScroller/lwmf -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/SineScroller/lwmf/lwmf_math_vasm.s
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/SineScroller/lwmf/ptplayer -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/SineScroller/lwmf/ptplayer/ptplayer.asm
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/CopperPlasma/lwmf -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/CopperPlasma/lwmf/lwmf_hardware_vasm.s
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/CopperPlasma/lwmf -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/CopperPlasma/lwmf/lwmf_math_vasm.s
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/CopperPlasma/lwmf/ptplayer -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/CopperPlasma/lwmf/ptplayer/ptplayer.asm
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/Morph -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/Morph/Morph_vasm.s
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/Morph/lwmf -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/Morph/lwmf/lwmf_hardware_vasm.s
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/Morph/lwmf -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/Morph/lwmf/lwmf_math_vasm.s
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/Morph/lwmf/ptplayer -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/Morph/lwmf/ptplayer/ptplayer.asm
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/Vectorballs -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/Vectorballs/Vectorballs_Assets.s
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/Vectorballs -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/Vectorballs/Vectorballs_vasm.s
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/Vectorballs/lwmf -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/Vectorballs/lwmf/lwmf_hardware_vasm.s
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/Vectorballs/lwmf -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/Vectorballs/lwmf/lwmf_math_vasm.s
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Demos/Vectorballs/lwmf/ptplayer -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Demos/Vectorballs/lwmf/ptplayer/ptplayer.asm
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Framework/lwmf -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Framework/lwmf/lwmf_hardware_vasm.s
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Framework/lwmf -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Framework/lwmf/lwmf_math_vasm.s
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Framework/lwmf/ptplayer -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Framework/lwmf/ptplayer/ptplayer.asm
+-Fhunk -I@RW@/StefanKubsch_AmigaCoding/Tools/shrinkler -I@RW@/StefanKubsch_AmigaCoding -I@NDK@ -I@NDK@/lvo | @RW@/StefanKubsch_AmigaCoding/Tools/shrinkler/ShrinklerDecompress.S
+-Fhunk -I@RW@/hukkax_amiga/dogs -I@RW@/hukkax_amiga -I@NDK@ -I@NDK@/lvo | @RW@/hukkax_amiga/dogs/decrunch2.asm
+-Fhunk -I@RW@/hukkax_amiga/dogs -I@RW@/hukkax_amiga -I@NDK@ -I@NDK@/lvo | @RW@/hukkax_amiga/dogs/player.asm
+-Fhunk -I@RW@/hukkax_amiga/catro -I@RW@/hukkax_amiga -I@NDK@ -I@NDK@/lvo | @RW@/hukkax_amiga/catro/player.asm
+-Fhunk -I@RW@/hukkax_amiga/bears -I@RW@/hukkax_amiga -I@NDK@ -I@NDK@/lvo | @RW@/hukkax_amiga/bears/decrunch2.asm
+-Fhunk -I@RW@/hukkax_amiga/bears -I@RW@/hukkax_amiga -I@NDK@ -I@NDK@/lvo | @RW@/hukkax_amiga/bears/player.asm
+-Fhunk -I@RW@/litwr2_rosetta-pi-spigot/amiga -I@RW@/litwr2_rosetta-pi-spigot -I@NDK@ -I@NDK@/lvo | @RW@/litwr2_rosetta-pi-spigot/amiga/pi-amiga.asm
+-Fhunk -I@RW@/litwr2_rosetta-pi-spigot/zx -I@RW@/litwr2_rosetta-pi-spigot -I@NDK@ -I@NDK@/lvo | @RW@/litwr2_rosetta-pi-spigot/zx/mul10000.s
+-Fhunk -I@RW@/litwr2_rosetta-pi-spigot/st -I@RW@/litwr2_rosetta-pi-spigot -I@NDK@ -I@NDK@/lvo | @RW@/litwr2_rosetta-pi-spigot/st/pi-st.asm
+-Fhunk -I@RW@/litwr2_rosetta-pi-spigot/8080 -I@RW@/litwr2_rosetta-pi-spigot -I@NDK@ -I@NDK@/lvo | @RW@/litwr2_rosetta-pi-spigot/8080/8080-div.s
+-Fhunk -I@RW@/litwr2_rosetta-pi-spigot/amstrad/cpc6128 -I@RW@/litwr2_rosetta-pi-spigot -I@NDK@ -I@NDK@/lvo | @RW@/litwr2_rosetta-pi-spigot/amstrad/cpc6128/mul10000.s
+-Fhunk -I@RW@/litwr2_rosetta-pi-spigot/ql -I@RW@/litwr2_rosetta-pi-spigot -I@NDK@ -I@NDK@/lvo | @RW@/litwr2_rosetta-pi-spigot/ql/pi-ql.asm
+-Fhunk -I@RW@/litwr2_rosetta-pi-spigot/tandy-i-iii-4 -I@RW@/litwr2_rosetta-pi-spigot -I@NDK@ -I@NDK@/lvo | @RW@/litwr2_rosetta-pi-spigot/tandy-i-iii-4/mul10000.s
+-Fhunk -I@RW@/litwr2_rosetta-pi-spigot/cbm/c128 -I@RW@/litwr2_rosetta-pi-spigot -I@NDK@ -I@NDK@/lvo | @RW@/litwr2_rosetta-pi-spigot/cbm/c128/mul10000.s
+-Fhunk -I@RW@/litwr2_rosetta-pi-spigot/msx -I@RW@/litwr2_rosetta-pi-spigot -I@NDK@ -I@NDK@/lvo | @RW@/litwr2_rosetta-pi-spigot/msx/mul10000.s
+-Fhunk -I@RW@/mbackschat_amiga-boing/src -I@RW@/mbackschat_amiga-boing -I@RW@/mbackschat_amiga-boing/src -I@NDK@ -I@NDK@/lvo | @RW@/mbackschat_amiga-boing/src/globe.s
+-Fhunk -I@RW@/michaelcmartin_bumbershoot/amiga -I@RW@/michaelcmartin_bumbershoot -I@NDK@ -I@NDK@/lvo | @RW@/michaelcmartin_bumbershoot/amiga/AmiCon.asm
+-Fhunk -I@RW@/michaelcmartin_bumbershoot/amiga -I@RW@/michaelcmartin_bumbershoot -I@NDK@ -I@NDK@/lvo | @RW@/michaelcmartin_bumbershoot/amiga/IntuiTut.asm
+-Fhunk -I@RW@/michaelcmartin_bumbershoot/amiga -I@RW@/michaelcmartin_bumbershoot -I@NDK@ -I@NDK@/lvo | @RW@/michaelcmartin_bumbershoot/amiga/LibIcon.asm
+-Fhunk -I@RW@/michaelcmartin_bumbershoot/amiga -I@RW@/michaelcmartin_bumbershoot -I@NDK@ -I@NDK@/lvo | @RW@/michaelcmartin_bumbershoot/amiga/MakeIcon.asm
+-Fhunk -I@RW@/michaelcmartin_bumbershoot/amiga -I@RW@/michaelcmartin_bumbershoot -I@NDK@ -I@NDK@/lvo | @RW@/michaelcmartin_bumbershoot/amiga/SongCaption.asm
+-Fhunk -I@RW@/michaelcmartin_bumbershoot/amiga -I@RW@/michaelcmartin_bumbershoot -I@NDK@ -I@NDK@/lvo | @RW@/michaelcmartin_bumbershoot/amiga/WowCaption.asm
+-Fhunk -I@RW@/michaelcmartin_bumbershoot/genesis -I@RW@/michaelcmartin_bumbershoot -I@NDK@ -I@NDK@/lvo | @RW@/michaelcmartin_bumbershoot/genesis/ccatitle.s
+-Fhunk -I@RW@/michaelcmartin_bumbershoot/genesis -I@RW@/michaelcmartin_bumbershoot -I@NDK@ -I@NDK@/lvo | @RW@/michaelcmartin_bumbershoot/genesis/fakecga.s
+-Fhunk -I@RW@/michaelcmartin_bumbershoot/genesis -I@RW@/michaelcmartin_bumbershoot -I@NDK@ -I@NDK@/lvo | @RW@/michaelcmartin_bumbershoot/genesis/joystick.s
+-Fhunk -I@RW@/michaelcmartin_bumbershoot/genesis -I@RW@/michaelcmartin_bumbershoot -I@NDK@ -I@NDK@/lvo | @RW@/michaelcmartin_bumbershoot/genesis/z80load.s
+-Fhunk -I@RW@/michaelcmartin_bumbershoot/msxetc/msx -I@RW@/michaelcmartin_bumbershoot -I@NDK@ -I@NDK@/lvo | @RW@/michaelcmartin_bumbershoot/msxetc/msx/msxbios.asm
+-Fhunk -I@RW@/michaelcmartin_bumbershoot/msxetc/coleco -I@RW@/michaelcmartin_bumbershoot -I@NDK@ -I@NDK@/lvo | @RW@/michaelcmartin_bumbershoot/msxetc/coleco/coleco_bios.asm
+-Fhunk -I@RW@/michaelcmartin_bumbershoot/asm/lz4core -I@RW@/michaelcmartin_bumbershoot -I@NDK@ -I@NDK@/lvo | @RW@/michaelcmartin_bumbershoot/asm/lz4core/lz4u_m68k.s
+-Fhunk -I@RW@/michaelcmartin_bumbershoot/sim_evo -I@RW@/michaelcmartin_bumbershoot -I@NDK@ -I@NDK@/lvo | @RW@/michaelcmartin_bumbershoot/sim_evo/AmigaSE.asm
+-Fhunk -I@RW@/michaelcmartin_bumbershoot/atari_st -I@RW@/michaelcmartin_bumbershoot -I@NDK@ -I@NDK@/lvo | @RW@/michaelcmartin_bumbershoot/atari_st/banner.asm
+-Fhunk -I@RW@/michaelcmartin_bumbershoot/atari_st -I@RW@/michaelcmartin_bumbershoot -I@NDK@ -I@NDK@/lvo | @RW@/michaelcmartin_bumbershoot/atari_st/hello.asm
+-Fhunk -I@RW@/michaelcmartin_bumbershoot/atari_st -I@RW@/michaelcmartin_bumbershoot -I@NDK@ -I@NDK@/lvo | @RW@/michaelcmartin_bumbershoot/atari_st/liberty.asm
+-Fhunk -I@RW@/michaelcmartin_bumbershoot/atari_st -I@RW@/michaelcmartin_bumbershoot -I@NDK@ -I@NDK@/lvo | @RW@/michaelcmartin_bumbershoot/atari_st/protomus.asm
+-Fhunk -I@RW@/michaelcmartin_bumbershoot/atari_st -I@RW@/michaelcmartin_bumbershoot -I@NDK@ -I@NDK@/lvo | @RW@/michaelcmartin_bumbershoot/atari_st/scale.asm
+-Fhunk -I@RW@/michaelcmartin_bumbershoot/atari_st -I@RW@/michaelcmartin_bumbershoot -I@NDK@ -I@NDK@/lvo | @RW@/michaelcmartin_bumbershoot/atari_st/xbtimer.asm
+-Fhunk -I@RW@/michaelcmartin_bumbershoot/atari_st -I@RW@/michaelcmartin_bumbershoot -I@NDK@ -I@NDK@/lvo | @RW@/michaelcmartin_bumbershoot/atari_st/xbtimer_simple.asm
+-Fhunk -I@RW@/neildavis_amiga_asmdev_workflow/src -I@RW@/neildavis_amiga_asmdev_workflow -I@RW@/neildavis_amiga_asmdev_workflow/include -I@RW@/neildavis_amiga_asmdev_workflow/src -I@NDK@ -I@NDK@/lvo | @RW@/neildavis_amiga_asmdev_workflow/src/unzx0.s
+-Fhunk -I@RW@/nicodex_amiga-font-luett/src -I@RW@/nicodex_amiga-font-luett -I@RW@/nicodex_amiga-font-luett/include -I@RW@/nicodex_amiga-font-luett/src -I@NDK@ -I@NDK@/lvo | @RW@/nicodex_amiga-font-luett/src/luett.asm
+-Fhunk -I@RW@/nicodex_amiga-font-luett/src -I@RW@/nicodex_amiga-font-luett -I@RW@/nicodex_amiga-font-luett/include -I@RW@/nicodex_amiga-font-luett/src -I@NDK@ -I@NDK@/lvo | @RW@/nicodex_amiga-font-luett/src/luett8.asm
+-Fhunk -I@RW@/nicodex_amiga-font-luett/src -I@RW@/nicodex_amiga-font-luett -I@RW@/nicodex_amiga-font-luett/include -I@RW@/nicodex_amiga-font-luett/src -I@NDK@ -I@NDK@/lvo | @RW@/nicodex_amiga-font-luett/src/luett8d.asm
+-Fhunk -I@RW@/nicodex_amiga-font-luett/src -I@RW@/nicodex_amiga-font-luett -I@RW@/nicodex_amiga-font-luett/include -I@RW@/nicodex_amiga-font-luett/src -I@NDK@ -I@NDK@/lvo | @RW@/nicodex_amiga-font-luett/src/luett8f.asm
+-Fhunk -I@RW@/nicodex_amiga-font-luett/src -I@RW@/nicodex_amiga-font-luett -I@RW@/nicodex_amiga-font-luett/include -I@RW@/nicodex_amiga-font-luett/src -I@NDK@ -I@NDK@/lvo | @RW@/nicodex_amiga-font-luett/src/luett8l.asm
+-Fhunk -I@RW@/nicodex_amiga-font-luett/src -I@RW@/nicodex_amiga-font-luett -I@RW@/nicodex_amiga-font-luett/include -I@RW@/nicodex_amiga-font-luett/src -I@NDK@ -I@NDK@/lvo | @RW@/nicodex_amiga-font-luett/src/luett8p.asm
+-Fhunk -I@RW@/nicodex_amiga-font-luett/src -I@RW@/nicodex_amiga-font-luett -I@RW@/nicodex_amiga-font-luett/include -I@RW@/nicodex_amiga-font-luett/src -I@NDK@ -I@NDK@/lvo | @RW@/nicodex_amiga-font-luett/src/luette.asm
+-Fhunk -I@RW@/nicodex_amiga-font-luett/src -I@RW@/nicodex_amiga-font-luett -I@RW@/nicodex_amiga-font-luett/include -I@RW@/nicodex_amiga-font-luett/src -I@NDK@ -I@NDK@/lvo | @RW@/nicodex_amiga-font-luett/src/luette8.asm
+-Fhunk -I@RW@/nicodex_amiga-font-luett/src -I@RW@/nicodex_amiga-font-luett -I@RW@/nicodex_amiga-font-luett/include -I@RW@/nicodex_amiga-font-luett/src -I@NDK@ -I@NDK@/lvo | @RW@/nicodex_amiga-font-luett/src/luette8f.asm
+-Fhunk -I@RW@/nicodex_amiga-font-luett/src -I@RW@/nicodex_amiga-font-luett -I@RW@/nicodex_amiga-font-luett/include -I@RW@/nicodex_amiga-font-luett/src -I@NDK@ -I@NDK@/lvo | @RW@/nicodex_amiga-font-luett/src/luette8p.asm
+-Fhunk -I@RW@/nicodex_amiga-font-luett/src -I@RW@/nicodex_amiga-font-luett -I@RW@/nicodex_amiga-font-luett/include -I@RW@/nicodex_amiga-font-luett/src -I@NDK@ -I@NDK@/lvo | @RW@/nicodex_amiga-font-luett/src/luettef.asm
+-Fhunk -I@RW@/nicodex_amiga-font-luett/src -I@RW@/nicodex_amiga-font-luett -I@RW@/nicodex_amiga-font-luett/include -I@RW@/nicodex_amiga-font-luett/src -I@NDK@ -I@NDK@/lvo | @RW@/nicodex_amiga-font-luett/src/luetten.asm
+-Fhunk -I@RW@/nicodex_amiga-font-luett/src -I@RW@/nicodex_amiga-font-luett -I@RW@/nicodex_amiga-font-luett/include -I@RW@/nicodex_amiga-font-luett/src -I@NDK@ -I@NDK@/lvo | @RW@/nicodex_amiga-font-luett/src/luettf.asm
+-Fhunk -I@RW@/nicodex_amiga-font-luett/src -I@RW@/nicodex_amiga-font-luett -I@RW@/nicodex_amiga-font-luett/include -I@RW@/nicodex_amiga-font-luett/src -I@NDK@ -I@NDK@/lvo | @RW@/nicodex_amiga-font-luett/src/luettn.asm
