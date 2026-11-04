@@ -31,6 +31,15 @@ for src in "$top"/tests/corpus/*.s; do
     [ $rc -ne 0 ] && ok=1
   elif [ -f "$exp" ]; then
     [ $rc -eq 0 ] && cmp -s "$exp" "$out/$name.out" && ok=1
+    # the same source named by a path (vasm's object names it by its file name alone): from the
+    # top by a relative path and from / by the absolute one
+    if [ $ok = 1 ]; then
+      for p in "tests/corpus/$name.s" "$src"; do
+        ( cd "$top" && cd "$( [ "$p" = "$src" ] && echo / || echo . )" && "$G" -cpu=$1 -syntax=$2 -quiet $args -o "$out/$name.path.out" "$p" ) >>"$out/$name.log" 2>&1 &&
+          cmp -s "$exp" "$out/$name.path.out" || { ok=0; echo "$name: differs when the source is named $p"; }
+      done
+      rm -f "$out/$name.path.out"
+    fi
   else
     echo "MISSING expectation for $name (run tests/gen-expected.sh)"
   fi
