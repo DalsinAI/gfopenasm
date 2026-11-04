@@ -12,7 +12,8 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#define GFASM_VERSION "0.1.0"
+#define GFASM_VERSION "1.1.0"
+#define GFASM_DATE    "4.11.2026"   /* release date, for the AmigaOS version string */
 
 typedef int64_t ival;
 typedef uint64_t uval;
@@ -26,6 +27,13 @@ char *xstrndup(const char *s, size_t n);
 int  stricmp_(const char *a, const char *b);
 int  strnicmp_(const char *a, const char *b, size_t n);
 char *strprintf(const char *fmt, ...);
+
+/* host file names: '/' everywhere, also '\\' and "C:" on Windows, and
+ * "volume:" with '/' for the parent directory on AmigaOS, MorphOS and AROS */
+long double gf_frexpl(long double x, int *e);   /* frexpl() without libm */
+int  path_is_sep(int c);
+int  path_is_absolute(const char *p);
+const char *path_base(const char *p);
 
 typedef struct bbuf { uint8_t *d; size_t n, cap; } bbuf;
 void bb_put(bbuf *b, const void *p, size_t n);

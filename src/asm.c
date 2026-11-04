@@ -203,7 +203,7 @@ void encode_float(int ftype, long double f, uint8_t *o)
     } else if (f == 0) {
       e = 0; mant = 0;
     } else {
-      m = frexpl(f, &ex);  /* 0.5 <= m < 1 */
+      m = gf_frexpl(f, &ex);  /* 0.5 <= m < 1 */
       for (i = 0; i < 64; i++) {
         m *= 2;
         mant <<= 1;
@@ -607,7 +607,7 @@ static char *join_path(const char *dir, const char *name)
 {
   size_t l = strlen(dir);
   if (!l) return xstrdup(name);
-  if (dir[l - 1] == '/' || dir[l - 1] == ':')
+  if (path_is_sep((unsigned char)dir[l - 1]))
     return strprintf("%s%s", dir, name);
   return strprintf("%s/%s", dir, name);
 }
@@ -617,7 +617,7 @@ char *find_include(const char *name, int bin)
   int i;
   char *p;
   (void)bin;
-  if (name[0] == '/' ) return file_exists(name) ? xstrdup(name) : NULL;
+  if (path_is_absolute(name)) return file_exists(name) ? xstrdup(name) : NULL;
   /* 1. compile directory, 2. current directory */
   if (compile_dir && *compile_dir) {
     p = join_path(compile_dir, name);
@@ -629,7 +629,7 @@ char *find_include(const char *name, int bin)
     p = join_path(incpaths[i], name);
     if (file_exists(p)) return p;
     free(p);
-    if (compile_dir && *compile_dir && incpaths[i][0] != '/') {
+    if (compile_dir && *compile_dir && !path_is_absolute(incpaths[i])) {
       char *q = join_path(compile_dir, incpaths[i]);
       p = join_path(q, name);
       free(q);

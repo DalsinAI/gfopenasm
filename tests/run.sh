@@ -11,7 +11,8 @@
 # If VASM is set to a vasm binary, the oracle is run live as well and
 # compared against the stored expectation.
 top=$(cd "$(dirname "$0")/.." && pwd)
-G="$top/gfasm"
+G="${GFASM:-$top/gfasm}"
+case "$G" in /*) ;; */*) G="$PWD/$G";; esac
 out="$top/tests/out"
 mkdir -p "$out"
 pass=0; fail=0; failed=""

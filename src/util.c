@@ -161,5 +161,58 @@ srcfile *load_source(const char *name, const char *path)
   return sf;
 }
 
+/* frexpl() for C libraries that have no long double maths (libnix): split
+ * a finite x into m * 2^e with 0.5 <= |m| < 1.  Scaling by powers of two
+ * is exact, so the result is the same as frexpl()'s. */
+long double gf_frexpl(long double x, int *e)
+{
+  long double m = x < 0 ? -x : x;
+  int n = 0;
+  *e = 0;
+  if (m == 0 || m != m || m - m != 0) return x;    /* zero, NaN, infinity */
+  while (m >= 18446744073709551616.0L) { m /= 18446744073709551616.0L; n += 64; }
+  while (m >= 1) { m /= 2; n++; }
+  while (m < 5.42101086242752217e-20L) { m *= 18446744073709551616.0L; n -= 64; }
+  while (m < 0.5L) { m *= 2; n--; }
+  *e = n;
+  return x < 0 ? -m : m;
+}
+
+/* ------------------------------------------------------- host paths */
+#if defined(_WIN32)
+#define HOST_DOS 1
+#elif defined(__amigaos__) || defined(__amigaos4__) || defined(__MORPHOS__) || defined(__AROS__)
+#define HOST_AMIGA 1
+#endif
+
+int path_is_sep(int c)
+{
+#if defined(HOST_DOS)
+  return c == '/' || c == '\\' || c == ':';
+#elif defined(HOST_AMIGA)
+  return c == '/' || c == ':';
+#else
+  return c == '/';
+#endif
+}
+
+int path_is_absolute(const char *p)
+{
+#if defined(HOST_DOS)
+  return p[0] == '/' || p[0] == '\\' || (p[0] && p[1] == ':');
+#elif defined(HOST_AMIGA)
+  return strchr(p, ':') != NULL;    /* "volume:dir/file"; a leading '/' is the parent */
+#else
+  return p[0] == '/';
+#endif
+}
+
+const char *path_base(const char *p)
+{
+  const char *b = p;
+  for (; *p; p++) if (path_is_sep((unsigned char)*p)) b = p + 1;
+  return b;
+}
+
 int is_ws(int c) { return c == ' ' || c == '\t'; }
 const char *skip_ws(const char *p) { while (is_ws(*p)) p++; return p; }

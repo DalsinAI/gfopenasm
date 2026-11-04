@@ -2382,7 +2382,7 @@ static int fdiv_pow2(ictx *c, operand *o, int opmode, long double *recip)
   if (!is_abs(&r) || !r.defined) return opmode;
   f = r.isflt ? r.f : (long double)r.v;
   if (f == 0) return opmode;
-  if (frexpl(f < 0 ? -f : f, &e) != 0.5L) return opmode;
+  if (gf_frexpl(f < 0 ? -f : f, &e) != 0.5L) return opmode;
   *recip = 1.0L / f;
   return opmode + 3;
 }
