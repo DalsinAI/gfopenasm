@@ -67,7 +67,7 @@ static int mot_number(const char **pp, expr **out)
         ((*p == 'e' || *p == 'E') && (isdigit((unsigned char)p[1]) ||
          ((p[1] == '-' || p[1] == '+') && isdigit((unsigned char)p[2]))))) {
       char *end;
-      long double f = strtold(s, &end);
+      long double f = (long double)strtod(s, &end);
       *pp = end;
       *out = new_flt(f);
       return 1;
@@ -127,11 +127,27 @@ static expr *mot_ident(const char *n, size_t len)
   return new_sym(s);
 }
 
+static section *stmt_sec;
+static atom *stmt_prev;
+
 static expr *mot_pc(void)
 {
   if (!line_anchor) {
+    section *s = default_section();
+    atom *a;
     line_anchor = sym_new_internal();
-    add_label_atom(line_anchor);
+    if (s != stmt_sec) { add_label_atom(line_anchor); return new_sym(line_anchor); }
+    a = xcalloc(1, sizeof(*a));
+    a->type = AT_LABEL;
+    a->pos = curpos;
+    a->u.label.sym = line_anchor;
+    if (stmt_prev) { a->next = stmt_prev->next; stmt_prev->next = a; }
+    else { a->next = s->first; s->first = a; }
+    if (s->last == stmt_prev) s->last = a;
+    line_anchor->type = S_LABEL;
+    line_anchor->sec = s;
+    line_anchor->atom = a;
+    line_anchor->flags |= SF_DEFINED;
   }
   return new_sym(line_anchor);
 }
@@ -1224,6 +1240,8 @@ void mot_parse_line(const char *line)
   pline pl;
   label_handled = 0;
   line_anchor = NULL;
+  stmt_sec = cursec;
+  stmt_prev = cursec ? cursec->last : NULL;
   if (defmacro || collecting_rept) { collect_line(line); return; }
   if (in_rem) {
     split_line(line, &pl);

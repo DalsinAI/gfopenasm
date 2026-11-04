@@ -36,9 +36,17 @@ static int sec_has_symbols(section *s)
   return 0;
 }
 
+static int sec_has_atoms(section *s)
+{
+  atom *a;
+  for (a = s->first; a; a = a->next) if (a->type != AT_LABEL) return 1;
+  return 0;
+}
+
 static int sec_output(section *s)
 {
   if (s->flags & SEC_OFFSET) return 0;
+  if (sec_has_atoms(s)) return 1;
   if (s->size == 0 && !opt_keepempty && !sec_has_symbols(s) && !s->relocs) return 0;
   return 1;
 }
@@ -333,8 +341,10 @@ static int hunk_write(FILE *f, const char *outname)
     section *s = hsec[i];
     int extra;
     uint32_t mb = mem_bits(s, &extra);
-    w32(HUNK_NAME);
-    wname(s->name);
+    if (s->size) {
+      w32(HUNK_NAME);
+      wname(s->name);
+    }
     w32(hunk_type(s) | mb);
     if (extra) w32(s->memflags);
     w32(hunk_longs(s));
@@ -649,7 +659,7 @@ static int elf_write(FILE *f, const char *outname)
           w32(12);
         }
     }
-    w32(7); w32(3); w32(0); w32(0); w32((uint32_t)shstroff); w32((uint32_t)shs.n); w32(0); w32(0); w32(1); w32(0);
+    w32(17); w32(3); w32(0); w32(0); w32((uint32_t)shstroff); w32((uint32_t)shs.n); w32(0); w32(0); w32(1); w32(0);
     w32(1); w32(2); w32(0); w32(0); w32((uint32_t)symoff); w32(nsyms * 16); w32(strtab_idx); w32(firstglobal); w32(4); w32(16);
     w32(9); w32(3); w32(0); w32(0); w32((uint32_t)stroff); w32((uint32_t)strs.n); w32(0); w32(0); w32(1); w32(0);
   }

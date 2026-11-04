@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
 
 void encode_float(int ftype, long double f, uint8_t *o);
 
@@ -260,6 +261,7 @@ typedef struct operand {
   int bf; int bfo_reg, bfw_reg; expr *bfo, *bfw;
   int kf; int kf_reg; expr *kfe;
   int isreglist1;
+  int rawhex;        /* #$..., #%..., #@... : raw bit pattern for FP sizes */
   /* resolution results (per pass) */
   int form;
   int extlen;
@@ -438,6 +440,7 @@ static int parse_operand(const char *s, operand *o)
   if (*p == '#' || (opt_sgs && *p == '&')) {
     p++;
     o->mode = M_IMM;
+    o->rawhex = (*p == '$' || *p == '%' || (*p == '@' && p[1] >= '0' && p[1] <= '7'));
     o->bd = parse_expr(&p);
     if (!o->bd) return 0;
     p = skip_ws(p);
@@ -633,6 +636,7 @@ typedef struct ictx {
   bbuf *out;
   int enc;             /* 1 = encoding pass */
   int len;             /* bytes emitted so far */
+  int jmppc;           /* jmp/jsr (d,pc): keep 16-bit form, no range check */
 } ictx;
 
 typedef int (*handler)(ictx *c);
@@ -879,9 +883,10 @@ static int ea_resolve(ictx *c, operand *o, unsigned allowed, int isz, int extoff
         d = r.v;
       }
       o->disp = d;
+      if (is_pc && c->jmppc && !o->bdsz) { o->form = F_PCD16; o->extlen = 2; break; }
       if (o->bdsz == 4 && IS020(c)) { o->form = is_pc ? F_PCFULL : F_FULL; o->extlen = 6; break; }
       if (!is_pc && !o->bdsz && !reloc && d == 0 && OPT(c) && (allowed & A_IND) && o->bd) {
-        o->form = F_IND; break;
+        o->form = F_IND; o->reg = o->base; break;
       }
       if (reloc || fits16(d) || o->bdsz == 2 || !IS020(c) || !OPT(c)) {
         o->form = is_pc ? F_PCD16 : F_D16; o->extlen = 2; break;
@@ -950,6 +955,7 @@ static int ea_bits(const operand *o)
 
 static int scale_bits(int s) { return s == 8 ? 3 : s == 4 ? 2 : s == 2 ? 1 : 0; }
 
+static int imm_raw;
 static void emit_imm(ictx *c, expr *e, int isz)
 {
   eres r;
@@ -959,10 +965,29 @@ static void emit_imm(ictx *c, expr *e, int isz)
     eval_expr(e, &r);
     if (c->enc) {
       if (!is_abs(&r)) error("immediate operand has illegal type or size");
-      encode_float(isz, r.isflt ? r.f : (long double)r.v, buf);
+      if (imm_raw && !r.isflt) {
+        uint64_t u = (uint64_t)r.v;
+        if (r.v >= -0x80000000LL && r.v <= 0xffffffffLL) u = (uint32_t)r.v;
+        memset(buf, 0, sizeof(buf));
+        for (i = 0; i < 8 && i < n; i++) buf[n - 1 - i] = (uint8_t)(u >> (8 * i));
+      } else
+        encode_float(isz, r.isflt ? r.f : (long double)r.v, buf);
       for (i = 0; i < n; i += 2) bb_be16(c->out, (buf[i] << 8) | buf[i + 1]);
     }
     c->len += n;
+    return;
+  }
+  eval_expr(e, &r);
+  if (r.isflt && (isz == 'l' || isz == 'w' || isz == 'b')) {
+    uint8_t buf[4];
+    encode_float('s', r.f, buf);
+    if (isz == 'l') {
+      if (c->enc) { bb_be16(c->out, (buf[0] << 8) | buf[1]); bb_be16(c->out, (buf[2] << 8) | buf[3]); }
+      c->len += 4;
+    } else {
+      if (c->enc) bb_be16(c->out, (buf[0] << 8) | buf[1]);
+      c->len += 2;
+    }
     return;
   }
   eval_op(c, e, &r);
@@ -977,7 +1002,9 @@ static void ea_emit(ictx *c, operand *o, int isz)
   ival ea = c->pc + c->len;
   switch (o->form) {
   case F_IMM:
+    imm_raw = o->rawhex;
     emit_imm(c, o->bd, isz);
+    imm_raw = 0;
     return;
   case F_ABSW:
     eval_op(c, o->bd, &r);
@@ -998,6 +1025,7 @@ static void ea_emit(ictx *c, operand *o, int isz)
   case F_PCD16:
     eval_op(c, o->bd, &r);
     if (is_abs(&r) && !(c->sec->flags & SEC_ABS) && !opt_nodpc) {
+      if (c->jmppc) { emit16(c, (uint32_t)r.v & 0xffff); return; }
       emit_val(c, &r, 2, 0, 0, -32768, 32767, "displacement out of range");
       return;
     }
@@ -1179,6 +1207,7 @@ static int h_moveq(ictx *c)
 
 /* forward decls */
 static int h_lea(ictx *c);
+static int h_movea(ictx *c);
 static void emit_moveq(ictx *c, int dn, ival v) { emit16(c, 0x7000 | (dn << 9) | (v & 0xff)); }
 
 static int h_move(ictx *c)
@@ -1233,12 +1262,29 @@ static int h_move(ictx *c)
     if (!ea_chk(c, 0, EA_ALL, s, 2)) return 0;
     return emit_op_ea(c, (movesz(s) << 12) | (dst->reg << 9) | 0x40, 0, s);
   }
-  if (OPT(c) && is_imm(src)) {
+  if (OPT(c) && is_imm(src) && c->ip->m->h != h_movea) {
     ival v;
     if (imm_value(c, src, &v)) {
       ival sv = sext(v, s);
       if (s == 'l' && is_dn(dst)) {
-        if (fits8(sv)) { emit_moveq(c, dst->reg, sv); return 1; }
+        uint32_t u = (uint32_t)v;
+        int n = dst->reg;
+        if (fits8(sv)) { emit_moveq(c, n, sv); return 1; }
+        if (u >= 128 && u <= 254 && !(u & 1)) {
+          emit_moveq(c, n, u >> 1);
+          emit16(c, 0xD040 | (n << 9) | n);
+          return 1;
+        }
+        if ((u & 0xffff) == 0 && (u >> 16) >= 1 && (u >> 16) <= 0x7f) {
+          emit_moveq(c, n, u >> 16);
+          emit16(c, 0x4840 | n);
+          return 1;
+        }
+        if ((u & 0xffff) == 0xffff && (u >> 16) >= 0xff80 && (u >> 16) <= 0xfffe) {
+          emit_moveq(c, n, (int8_t)(u >> 16));
+          emit16(c, 0x4840 | n);
+          return 1;
+        }
       }
       if (sv == 0 && !is_an(dst) && ((c->ip->cpu & ~C000) || opt_clr)) {
         if (ea_resolve(c, dst, EA_DALT, s, 2)) {
@@ -1261,7 +1307,6 @@ static int h_move(ictx *c)
 static int h_movea(ictx *c)
 {
   if (!nops_is(c, 2)) return 0;
-  if (!is_an(OP(c, 1))) { if (c->enc) error("address register required"); return 0; }
   return h_move(c);
 }
 
@@ -1280,11 +1325,10 @@ static int h_addsub(ictx *c)
   if (is_an(dst)) {
     if (s == 'b') { if (c->enc) error("illegal opcode extension"); s = 'w'; }
     if (OPT(c) && is_imm(src) && imm_value(c, src, &v)) {
-      v = sext(v, s);
       if (v == 0) return 1;     /* deleted */
       if (v >= 1 && v <= 8) { emit16(c, (issub ? 0x5100 : 0x5000) | ((v & 7) << 9) | (sz2(s) << 6) | 010 | dst->reg); return 1; }
-      if (v >= -8 && v <= -1) { emit16(c, (issub ? 0x5000 : 0x5100) | ((-v & 7) << 9) | (sz2(s) << 6) | 010 | dst->reg); return 1; }
-      if (fits16(issub ? -v : v) && fits16(v)) {
+      if (!issub && v >= -8 && v <= -1) { emit16(c, 0x5100 | ((-v & 7) << 9) | (sz2(s) << 6) | 010 | dst->reg); return 1; }
+      if (issub ? (v >= -32767 && v <= 32768) : fits16(v)) {
         /* adda #x,An -> lea (x,An),An */
         emit16(c, 0x41E8 | (dst->reg << 9) | dst->reg);
         emit16(c, (uint32_t)(issub ? -v : v) & 0xffff);
@@ -1295,18 +1339,14 @@ static int h_addsub(ictx *c)
     return emit_op_ea(c, base | (dst->reg << 9) | (s == 'l' ? 0x1C0 : 0xC0), 0, s);
   }
   if (is_imm(src)) {
+    int explicit_i = (c->ip->m->opc & 0xF000) == 0;
     if (OPT(c) && imm_value(c, src, &v)) {
-      v = sext(v, s);
       if (v >= 1 && v <= 8) {
         if (!ea_chk(c, 1, EA_ALT, s, 2)) return 0;
         return emit_op_ea(c, (issub ? 0x5100 : 0x5000) | ((v & 7) << 9) | (sz2(s) << 6), 1, s);
       }
-      if (v >= -8 && v <= -1) {
-        if (!ea_chk(c, 1, EA_ALT, s, 2)) return 0;
-        return emit_op_ea(c, (issub ? 0x5000 : 0x5100) | ((-v & 7) << 9) | (sz2(s) << 6), 1, s);
-      }
     }
-    if (!is_dn(dst) || 1) {
+    if (!is_dn(dst) || explicit_i) {
       /* addi / subi */
       if (!ea_chk(c, 0, A_IMM, s, 2)) return 0;
       if (!ea_chk(c, 1, EA_DALT, s, 2 + imm_len(s))) return 0;
@@ -1399,7 +1439,7 @@ static int h_logic(ictx *c)
     ival v;
     if (OPT(c) && imm_value(c, src, &v)) {
       ival mask = s == 'b' ? 0xff : s == 'w' ? 0xffff : 0xffffffffLL;
-      ival mv = v & mask;
+      ival mv = kind == 2 ? (v & mask) : (s == 'l' ? (v & mask) : v);
       if (kind == 0 && mv == 0 && ((c->ip->cpu & ~C000) || opt_clr)) {
         if (!ea_chk(c, 1, EA_DALT, s, 2)) return 0;
         return emit_op_ea(c, 0x4200 | (sz2(s) << 6), 1, s);
@@ -1412,6 +1452,10 @@ static int h_logic(ictx *c)
         if (!ea_chk(c, 1, EA_DALT, s, 2)) return 0;
         return emit_op_ea(c, 0x4600 | (sz2(s) << 6), 1, s);
       }
+    }
+    if (kind != 2 && !immonly && is_dn(dst)) {
+      if (!ea_chk(c, 0, EA_DATA, s, 2)) return 0;
+      return emit_op_ea(c, regop[kind] | (dst->reg << 9) | (sz2(s) << 6), 0, s);
     }
     if (!ea_chk(c, 0, A_IMM, s, 2)) return 0;
     if (!ea_chk(c, 1, EA_DALT, s, 2 + imm_len(s))) return 0;
@@ -1447,6 +1491,11 @@ static int h_cmp(ictx *c)
     return 1;
   }
   if (kind == 3) { if (c->enc) error("illegal addressing mode"); return 0; }
+  if (is_an(dst) && kind != 2 && is_imm(src) && OPT(c) && (c->ip->cpu & (C020UP | CCPU32)) &&
+      imm_value(c, src, &v) && sext(v, s) == 0 && s != 'b') {
+    emit16(c, 0x4A80 | 010 | dst->reg);
+    return 1;
+  }
   if (is_an(dst) && kind != 2) {
     if (s == 'b') { if (c->enc) error("illegal opcode extension"); s = 'w'; }
     if (OPT(c) && is_imm(src) && s == 'l' && imm_value(c, src, &v) && fits16(sext(v, s))) s = 'w';
@@ -1510,6 +1559,12 @@ static int h_shift(ictx *c)
   operand *a = OP(c, 0), *b;
   if (c->ip->nops == 1) {
     if (is_dn(a)) {
+      if (OPT(c) && dir == 1 && !(c->ip->cpu & (C040 | C060)) &&
+          (type == 0 || (type == 1 && opt_lsl))) {
+        /* vasm encodes this as ADD Dn,D0 (oracle-verified quirk) */
+        emit16(c, 0xD000 | (sz2(s) << 6) | a->reg);
+        return 1;
+      }
       emit16(c, 0xE000 | (1 << 9) | (dir << 8) | (sz2(s) << 6) | (type << 3) | a->reg);
       return 1;
     }
@@ -1529,7 +1584,7 @@ static int h_shift(ictx *c)
     eres r;
     eval_op(c, a->bd, &r);
     v = r.v;
-    if (OPT(c) && is_abs(&r) && v == 1 && dir == 1 && !(c->ip->cpu & ~(C000 | C010)) &&
+    if (OPT(c) && is_abs(&r) && v == 1 && dir == 1 && !(c->ip->cpu & (C040 | C060)) &&
         (type == 0 || (type == 1 && opt_lsl))) {
       /* asl #1,Dn -> add Dn,Dn */
       emit16(c, 0xD000 | (b->reg << 9) | (sz2(s) << 6) | b->reg);
@@ -1631,7 +1686,8 @@ static int h_bcc(ictx *c)
     if (!OPT(c)) form = 2;
     else if (known) {
       ival d8 = fwd_adj(c, &r, d, 2), d16 = fwd_adj(c, &r, d, 4);
-      if (d8 != 0 && fits8(d8) && d8 != -1 && !(grow_only && c->ip->lastsize > 2)) form = 1;
+      if (d8 != 0 && fits8(d8) && d8 != -1 && !(grow_only && c->ip->lastsize > 2) &&
+          !(cc == 1 && d16 == 2)) form = 1;
       else if (fits16(d16) && !(grow_only && c->ip->lastsize > 4)) form = 2;
       else if (IS020(c)) form = 4;
       else form = 8;
@@ -1642,15 +1698,19 @@ static int h_bcc(ictx *c)
       else form = 2;
     }
   }
+  if (form == 4 && !IS020(c)) {
+    if (c->enc) warning("deprecated B<cc>.L on 68000 transformed into B<cc>.W");
+    form = 2;
+  }
   if (form == 1) {
     if (c->enc) {
       if (!known) error("branch destination out of range");
-      else if (d == 0) {
-        warning("8-bit branch with zero displacement was converted to 16-bit");
-      } else if (!fits8(d)) error("branch destination out of range");
+      else if (d == 0) warning("short-branch to following instruction turned into a nop");
+      else if (!fits8(d)) error("branch destination out of range");
     }
-    if (known && d == 0) form = 2;
-    else { emit16(c, 0x6000 | (cc << 8) | (d & 0xff)); return 1; }
+    if (known && d == 0) { emit16(c, 0x4DD6); return 1; }
+    emit16(c, 0x6000 | (cc << 8) | (d & 0xff));
+    return 1;
   }
   if (form == 2) {
     emit16(c, 0x6000 | (cc << 8));
@@ -1742,6 +1802,7 @@ static int h_jmp(ictx *c)
       return 1;
     }
   }
+  c->jmppc = 1;
   if (!ea_chk(c, 0, EA_CTRL, 'l', 2)) return 0;
   return emit_op_ea(c, isjsr ? 0x4E80 : 0x4EC0, 0, 'l');
 }
@@ -1770,7 +1831,7 @@ static int h_lea(ictx *c)
       }
     }
     if (src->mode == M_MEM && src->base >= 0 && src->base < 8 && src->base != dst->reg &&
-        src->xn < 0 && !src->memind && !src->bdsz && !IS020(c) && opt_speed) {
+        src->xn < 0 && !src->memind && !src->bdsz && !IS020(c)) {
       ival v;
       if (src->bd && eval_const(src->bd, &v) && !fits16(v) && !c->ip->basereg[src->base]) {
         emit16(c, 0x2048 | (dst->reg << 9) | src->base);   /* movea.l Am,An */
@@ -1905,7 +1966,7 @@ static int h_muldiv(ictx *c)
     if (dh < 0) dh = isdiv ? dl : 0;
     if (!isdiv && dh >= 0 && dst->mode != M_PAIR) dh = 0;
     ext = (dl << 12) | (sgn ? 0x800 : 0) | (big ? 0x400 : 0) | (dh & 7);
-    if (!isdiv && dst->mode != M_PAIR) ext = (dl << 12) | (sgn ? 0x800 : 0);
+    if (!isdiv && dst->mode != M_PAIR) ext = (dl << 12) | (sgn ? 0x800 : 0) | dl;
     if (!ea_chk(c, 0, EA_DATA, 'l', 4)) return 0;
     emit16(c, (isdiv ? 0x4C40 : 0x4C00) | ea_bits(src));
     emit16(c, ext);
@@ -2278,14 +2339,39 @@ static int fconst_size(ictx *c, operand *o, int s)
 {
   eres r;
   long double f;
-  if (!OPT(c) || !opt_fconst || !is_imm(o)) return s;
-  if (s != 'x' && s != 'd' && s != 's') return s;
+  if (!is_imm(o)) return s;
   eval_expr(o->bd, &r);
   if (!is_abs(&r) || !r.defined) return s;
-  f = r.isflt ? r.f : (long double)r.v;
+  if (!r.isflt) {
+    if (o->rawhex && (s == 's' || s == 'd' || s == 'x' || s == 'p')) return s;
+    if (!OPT(c) || !opt_fconst) return s ? s : 'w';
+    if (s == 's' || s == 'd' || s == 'x' || !s) return fits16(r.v) ? 'w' : 'l';
+    return s;
+  }
+  if (!OPT(c) || !opt_fconst) return s;
+  if (s == 'p' || s == 'l' || s == 'w' || s == 'b') return s;
+  f = r.f;
   if ((long double)(float)f == f) return 's';
   if ((long double)(double)f == f) return s == 's' ? 's' : 'd';
   return s;
+}
+
+/* fdiv #2^n -> fmul #2^-n (opt-fconst) */
+static int fdiv_pow2(ictx *c, operand *o, int opmode, long double *recip)
+{
+  eres r;
+  long double f;
+  int e;
+  if (!is_imm(o) || !OPT(c) || !opt_fconst || o->rawhex) return opmode;
+  if (c->ip->size != 's' && c->ip->size != 'd' && c->ip->size != 'x' && !expr_is_float(o->bd)) return opmode;
+  if (opmode != 0x20 && opmode != 0x24 && opmode != 0x60 && opmode != 0x64) return opmode;
+  eval_expr(o->bd, &r);
+  if (!is_abs(&r) || !r.defined) return opmode;
+  f = r.isflt ? r.f : (long double)r.v;
+  if (f == 0) return opmode;
+  if (frexpl(f < 0 ? -f : f, &e) != 0.5L) return opmode;
+  *recip = 1.0L / f;
+  return opmode + 3;
 }
 
 static int is_fpn(operand *o) { return o->mode == M_FP; }
@@ -2321,8 +2407,26 @@ static int h_fgen(ictx *c)
     emit16(c, (src->reg << 10) | (dreg << 7) | opmode | creg);
     return 1;
   }
-  if (!s) s = 'x';
+  {
+    long double recip;
+    int om2 = fdiv_pow2(c, src, opmode, &recip);
+    if (om2 != opmode) {
+      expr *save = src->bd;
+      int ok;
+      src->bd = new_flt(recip);
+      s = fconst_size(c, src, 'x');
+      ok = ea_chk(c, 0, A_IMM, s, 4);
+      if (ok) {
+        emit16(c, fpw1(c, ea_bits(src)));
+        emit16(c, 0x4000 | (fpu_fmt(s) << 10) | (dreg << 7) | om2 | creg);
+        ea_emit(c, src, s);
+      }
+      src->bd = save;
+      return ok;
+    }
+  }
   if (is_imm(src)) s = fconst_size(c, src, s);
+  if (!s) s = 'w';
   {
     unsigned allowed = EA_DATA;
     if (s != 'b' && s != 'w' && s != 'l' && s != 's') allowed &= ~A_DN;
@@ -2361,8 +2465,8 @@ static int h_fmove(ictx *c)
       emit16(c, (a->reg << 10) | (b->reg << 7) | c->ip->m->arg);
       return 1;
     }
-    if (!s) s = 'x';
     if (is_imm(a)) s = fconst_size(c, a, s);
+    if (!s) s = 'w';
     {
       unsigned allowed = EA_DATA;
       if (s != 'b' && s != 'w' && s != 'l' && s != 's') allowed &= ~A_DN;
@@ -2801,7 +2905,7 @@ static const mnem base_table[] = {
   { "not",    0x4600, 0, SZ_BWL|SZ_U,        'w', UP,            h_unary, 0 },
   { "tst",    0x4A00, 0, SZ_BWL|SZ_U,        'w', UP,            h_unary, 0 },
   { "move",   0x0000, 0, SZ_BWL|SZ_U,        'w', UP,            h_move, 0 },
-  { "movea",  0x0040, 0, SZ_W|SZ_L|SZ_U,     'w', UP,            h_movea, 0 },
+  { "movea",  0x0040, 0, SZ_BWL|SZ_U,        'w', UP,            h_movea, 0 },
   { "moveq",  0x7000, 0, SZ_L|SZ_U,          'l', UP,            h_moveq, 0 },
   { "movem",  0x4880, 0, SZ_W|SZ_L|SZ_U,     'w', UP,            h_movem, 0 },
   { "movep",  0x0108, 0, SZ_W|SZ_L|SZ_U,     'w', UP,            h_movep, 0 },
@@ -2881,7 +2985,7 @@ static const mnem base_table[] = {
   { "plpaw",  0xF588, 0, SZ_U,               0,   C060,          h_an_ind, 0 },
   { "lpstop", 0xF800, 0, SZ_U,               0,   C060,          h_lpstop, 0 },
   /* MMU */
-  { "pmove",  0xF000, 0, SZ_BWL|SZ_D|SZ_Q_PLACEHOLDER|SZ_U, 0, C030|CMMU|C040|C060, h_pmove, 0 },
+  { "pmove",  0xF000, 0, SZ_BWL|SZ_D|SZ_U, 0, C030|CMMU|C040|C060, h_pmove, 0 },
   { "pmovefd",0xF000, 0, SZ_BWL|SZ_D|SZ_U,   0,   C030,          h_pmove, 1 },
   { "pflusha",0xF000, 0, SZ_U,               0,   C030|CMMU|C040|C060, h_pflusha, 0 },
   { "pflush", 0xF000, 0, SZ_U,               0,   C030|CMMU|C040|C060, h_pflush, 0 },

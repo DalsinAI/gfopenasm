@@ -211,7 +211,25 @@ void encode_float(int ftype, long double f, uint8_t *o)
     o[1] = e & 0xff;
     for (i = 0; i < 8; i++) o[4 + i] = mant >> (56 - 8 * i);
   } else if (ftype == 'p') {
-    memset(o, 0, 12);    /* packed decimal: not supported (as in vasm) */
+    /* packed decimal: 17 significant digits of the double value */
+    char buf[64], *q;
+    int ex, k, d = 0;
+    uint8_t dig[17];
+    memset(o, 0, 12);
+    if (f == 0) return;
+    snprintf(buf, sizeof(buf), "%.16e", (double)f);
+    q = buf;
+    if (*q == '-') { o[0] |= 0x80; q++; }
+    for (; *q && *q != 'e'; q++) if (*q >= '0' && *q <= '9' && d < 17) dig[d++] = *q - '0';
+    ex = *q == 'e' ? atoi(q + 1) : 0;
+    if (ex < 0) { o[0] |= 0x40; ex = -ex; }
+    o[0] |= (ex / 100) % 10;
+    o[1] = (((ex / 10) % 10) << 4) | (ex % 10);
+    o[3] = dig[0];
+    for (k = 1; k < 17; k++) {
+      int pos = 4 + (k - 1) / 2;
+      if ((k - 1) & 1) o[pos] |= dig[k]; else o[pos] |= dig[k] << 4;
+    }
   }
 }
 
@@ -349,6 +367,7 @@ static int sizing_pass(void)
         a->off = pc;
         s->size = pc;
         sz = cpu->insn_size(a, s, pc);
+        if (s->align < 2) s->align = 2;
         break;
       case AT_DATA:
         a->off = pc;
