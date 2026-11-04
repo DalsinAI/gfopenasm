@@ -166,3 +166,30 @@ copies them so that the bytes match:
 - x86-64: `-m64` and `.code64` are rejected.
 - CPU selection options are accepted but do not restrict the instruction set.
 - SSE3 and later, and most of 3DNow!, are not in the table.
+
+## oldstyle syntax and Z80 (phase 5) vasm behaviours copied
+
+`vasmz80_oldstyle` 2.0f:
+
+- Escape sequences in strings are off by default (a backslash-r in a string
+  is two bytes), but a character constant of two backslashes is one
+  backslash.
+- A leading `0` makes a number octal and stops at the first digit 8/9
+  (`08` is 0). `#` and `&` are hex prefixes on the Z80; `@` is binary there.
+- `defp` writes 16 bits, not 24. `db`/`dw` without an operand write one
+  zero element.
+- `org` inside an absolute section pads up to the new address (it does not
+  start a new section unless the address goes backwards).
+- With `-dotdir` the dot before a directive is optional.
+- `name:` defines a label in any column.
+- Z80: `(c)` in `ld` means register `c`, `ld (hl),(hl)` assembles to `halt`,
+  index prefixes and `h`/`l` mix freely, CB-prefixed operations on
+  `ixh`/`ixl` have no displacement byte (`dd cb op`), `adc`/`sbc ix,rr` keep
+  the index prefix before `ed`, and `in f,(c)` is accepted.
+
+## oldstyle / Z80 not implemented yet
+
+- `rorg`/`rend`/`phase`/`dephase`, `struct`, `dsect`/`dend`.
+- The `-8080`, `-gbz80`, `-hd64180`, `-intel-syntax` and Rabbit (`-rcm*`)
+  modes are rejected.
+- Output formats `ihex`, `srec` and `vobj`. Use `-Fbin`.

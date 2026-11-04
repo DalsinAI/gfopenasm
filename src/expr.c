@@ -9,6 +9,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
+int char_bs_pair;
 
 int (*syntax_number)(const char **pp, expr **out);
 expr *(*syntax_ident)(const char *name, size_t len);
@@ -80,6 +81,10 @@ static int parse_charconst(const char **pp, ival *v)
       if (p[1] == q) { p += 2; val = (val << 8) | (unsigned char)q; n++; continue; }
       p++;
       break;
+    }
+    if (c == '\\' && !opt_esc && char_bs_pair && p[1] == '\\') {
+      /* oldstyle: "\\" is one backslash even without escapes (oracle) */
+      p += 2; val = (val << 8) | '\\'; n++; continue;
     }
     if (c == '\\' && opt_esc) {
       p++;

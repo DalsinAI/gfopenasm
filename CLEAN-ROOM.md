@@ -37,7 +37,8 @@ no vasm code.
 | *ELF for the ARM Architecture* (ARM IHI 0044) | R_ARM_* relocation numbers, mapping symbols `$a`/`$t`/`$d`, EABI e_flags |
 | Intel *64 and IA-32 Architectures Software Developer's Manual*, vol. 2 (instruction set reference, opcode maps) and the AMD64 *Architecture Programmer's Manual* vol. 3/5 | 80x86 instruction encodings, ModRM/SIB, prefixes, x87, MMX, SSE/SSE2, 3DNow! |
 | *System V ABI Intel386 Architecture Processor Supplement* | R_386_* relocation numbers |
-| vasm 2.0f oracle binaries in `~/AmiCradle/stoves/vasm-oracles/2.0f/bin` on daletop (`vasmppc_std`, `vasmppc_mot`, `vasmarm_std`, `vasmx86_std`, ...), built by the stove builder from the pinned vasm archive | black-box oracle only, as for 68k |
+| Zilog *Z80 Family CPU User Manual* (UM0080) and the widely published tables of undocumented Z80 opcodes (ixh/ixl/iyh/iyl, sll, `in f,(c)`) | Z80 instruction encodings |
+| vasm 2.0f oracle binaries in `~/AmiCradle/stoves/vasm-oracles/2.0f/bin` on daletop (`vasmppc_std`, `vasmppc_mot`, `vasmarm_std`, `vasmx86_std`, `vasmz80_oldstyle`, ...), built by the stove builder from the pinned vasm archive | black-box oracle only, as for 68k |
 | vasm 2.0f binary (`vasmm68k_mot`, m68k backend 2.8c, mot syntax 3.19f) in the `os32` stove on daletop | black-box oracle only: byte-for-byte comparison of outputs for our own test sources |
 
 Real-world *test inputs* (not references, never copied into this repository):
