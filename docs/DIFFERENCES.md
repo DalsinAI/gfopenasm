@@ -9,6 +9,7 @@ are known are listed below. Anything else that differs is a bug.
 
 | Area | gfasm | vasm |
 |---|---|---|
+| Float expressions | some that vasm rejects are accepted: a shift of a float, a packed (`.p`) infinity; `oldstyle` syntax has no float constants (vasm reads `1.5` as `1` with a warning, gfasm reports an error) | errors |
 | Messages | Same wording for common errors and warnings, but no message numbers, and the set of warnings differs (for example, no "label name conflicts with mnemonic") | numbered errors/warnings |
 | Default output format | `bin` | `test` (vasm's debug output module) |
 | Listing file (`-L`) | simple address/bytes/source listing | vasm "wide"/"old" formats |
@@ -23,6 +24,10 @@ are known are listed below. Anything else that differs is a bug.
 Comparing outputs with vasm showed some behaviours that the vasm manual
 does not describe. gfasm does the same, so that the output bytes match:
 
+- Float expressions are evaluated in double precision. A `.x` constant
+  is the double's value in extended format (also for infinities, NaNs and
+  denormals, whose exponent is rebiased as for any other value). A float
+  in byte or word data is an error, except as a `dcb` fill value.
 - Integer expression results are wrapped to signed 32 bits after every
   operation. Literals that do not fit in 32 bits keep their 64-bit value.
   Comparison and logical operators return -1 for true; unary `!` returns
@@ -56,10 +61,14 @@ does not describe. gfasm does the same, so that the output bytes match:
 - `movea.? #x,<non-An>` assembles like `move` without moveq optimisation.
 - `movem.l (An)+,Am/An` becomes two `movea` instructions.
 - FPU: unsized instructions with a memory or immediate source default to
-  `.w`. Integer immediates with `.s/.d/.x` are optimised to `.w`/`.l`.
+  `.w`. Integer immediates with `.s/.d/.x` are optimised to `.w`/`.l`, and
+  so are float immediates with a whole value that fits in a word (but not
+  `-0.0`); other float immediates get the smallest of `.s` and `.d` that
+  holds them exactly. `ftst` and `fsincos` keep the size as written.
   `#$...`, `#%...` and `#@...` immediates in float formats are raw bit
-  patterns. Float immediates with `.b/.w/.l` keep the format but store
-  single-precision bits. `fdiv #2^n` becomes `fmul #2^-n`.
+  patterns. A float immediate with `.l` stores single-precision bits; with
+  `.b`, `.w` or no size it is an error. `fdiv #2^n` becomes
+  `fmul #2^-n`.
 - `rs` and `so` share one offset counter. `fo` decrements before it assigns.
 - `dcb.s` with a float fill value produces zeros.
 - `\@` numbers also count `rept` blocks and include files.

@@ -161,21 +161,32 @@ srcfile *load_source(const char *name, const char *path)
   return sf;
 }
 
-/* frexpl() for C libraries that have no long double maths (libnix): split
- * a finite x into m * 2^e with 0.5 <= |m| < 1.  Scaling by powers of two
- * is exact, so the result is the same as frexpl()'s. */
-long double gf_frexpl(long double x, int *e)
+/* Floating-point values are IEEE doubles on every host, and float
+ * arithmetic is done in double precision, as vasm does: so the output does
+ * not depend on the host's long double.
+ *
+ * gf_frexp(): split a finite x into m * 2^e with 0.5 <= |m| < 1, without
+ * libm.  Scaling by powers of two is exact. */
+double gf_frexp(double x, int *e)
 {
-  long double m = x < 0 ? -x : x;
+  double m = x < 0 ? -x : x;
   int n = 0;
   *e = 0;
   if (m == 0 || m != m || m - m != 0) return x;    /* zero, NaN, infinity */
-  while (m >= 18446744073709551616.0L) { m /= 18446744073709551616.0L; n += 64; }
+  while (m >= 18446744073709551616.0) { m /= 18446744073709551616.0; n += 64; }
   while (m >= 1) { m /= 2; n++; }
-  while (m < 5.42101086242752217e-20L) { m *= 18446744073709551616.0L; n -= 64; }
-  while (m < 0.5L) { m *= 2; n--; }
+  while (m < 5.42101086242752217e-20) { m *= 18446744073709551616.0; n -= 64; }
+  while (m < 0.5) { m *= 2; n--; }
   *e = n;
   return x < 0 ? -m : m;
+}
+
+/* float -> integer the same way on every host (C leaves it undefined out of
+ * range): truncate; NaN and values outside 64 bits give INT64_MIN */
+ival flt_to_ival(double f)
+{
+  if (f >= -9223372036854775808.0 && f < 9223372036854775808.0) return (ival)f;
+  return INT64_MIN;
 }
 
 /* ------------------------------------------------------- host paths */

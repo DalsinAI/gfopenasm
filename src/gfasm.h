@@ -17,6 +17,7 @@
 
 typedef int64_t ival;
 typedef uint64_t uval;
+ival flt_to_ival(double f);         /* the same result on every host */
 
 /* ---------------------------------------------------------------- util */
 void *xmalloc(size_t n);
@@ -30,7 +31,7 @@ char *strprintf(const char *fmt, ...);
 
 /* host file names: '/' everywhere, also '\\' and "C:" on Windows, and
  * "volume:" with '/' for the parent directory on AmigaOS, MorphOS and AROS */
-long double gf_frexpl(long double x, int *e);   /* frexpl() without libm */
+double gf_frexp(double x, int *e);   /* frexp() without libm */
 int  path_is_sep(int c);
 int  path_is_absolute(const char *p);
 const char *path_base(const char *p);
@@ -82,7 +83,7 @@ typedef struct expr {
   int op;
   struct expr *l, *r;
   ival v;
-  long double f;
+  double f;
   struct symbol *sym;
 } expr;
 
@@ -96,11 +97,11 @@ typedef struct eres {
   int defined;      /* all symbols known */
   int bad;          /* illegal relocation */
   int isflt;
-  long double f;
+  double f;
 } eres;
 
 expr *new_num(ival v);
-expr *new_flt(long double f);
+expr *new_flt(double f);
 expr *new_sym(struct symbol *s);
 expr *new_op(int op, expr *l, expr *r);
 expr *copy_expr(expr *e);
@@ -109,7 +110,7 @@ expr *parse_expr(const char **pp);
 int  eval_expr(expr *e, eres *r);
 int  eval_const(expr *e, ival *v);      /* 1 if absolute & defined */
 int  expr_is_float(expr *e);
-long double eres_float(eres *r);
+double eres_float(eres *r);
 expr *simplify_expr(expr *e);
 
 /* hooks from syntax module for expression parsing */

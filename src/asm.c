@@ -176,7 +176,7 @@ void add_label_atom(symbol *s)
 }
 
 /* ------------------------------------------------------------ floats */
-void encode_float(int ftype, long double f, uint8_t *o)
+void encode_float(int ftype, double f, uint8_t *o)
 {
   int i;
   if (ftype == 's') {
@@ -190,37 +190,21 @@ void encode_float(int ftype, long double f, uint8_t *o)
     memcpy(&u, &x, 8);
     for (i = 0; i < 8; i++) o[i] = u >> (56 - 8 * i);
   } else if (ftype == 'x') {
-    int sign = signbit(f) ? 1 : 0;
-    int ex, e;
-    uint64_t mant = 0;
-    long double m;
+    /* the double's fields moved into the extended format: sign, exponent
+     * rebiased from 1023 to 16383, the explicit integer bit set and the 52
+     * fraction bits on top.  vasm does it this way for every value but
+     * zero, so infinities, NaNs and denormals come out as it writes them. */
+    uint64_t u, mant;
+    int e;
+    memcpy(&u, &f, 8);
     memset(o, 0, 12);
-    if (sign) f = -f;
-    if (isnan(f)) {
-      e = 0x7fff; mant = 0xffffffffffffffffULL;
-    } else if (isinf(f)) {
-      e = 0x7fff; mant = 0;
-    } else if (f == 0) {
+    if ((u & 0x7fffffffffffffffULL) == 0) {
       e = 0; mant = 0;
     } else {
-      m = gf_frexpl(f, &ex);  /* 0.5 <= m < 1 */
-      for (i = 0; i < 64; i++) {
-        m *= 2;
-        mant <<= 1;
-        if (m >= 1) { mant |= 1; m -= 1; }
-      }
-      if (m > 0.5L || (m == 0.5L && (mant & 1))) {
-        mant++;
-        if (mant == 0) { mant = 0x8000000000000000ULL; ex++; }
-      }
-      e = ex - 1 + 16383;
-      if (e <= 0) {   /* denormal */
-        int sh = 1 - e;
-        mant = sh < 64 ? mant >> sh : 0;
-        e = 0;
-      }
+      e = (int)((u >> 52) & 0x7ff) - 1023 + 16383;
+      mant = 0x8000000000000000ULL | ((u & 0xfffffffffffffULL) << 11);
     }
-    o[0] = (sign << 7) | ((e >> 8) & 0x7f);
+    o[0] = (uint8_t)((u >> 63) << 7) | ((e >> 8) & 0x7f);
     o[1] = e & 0xff;
     for (i = 0; i < 8; i++) o[4 + i] = mant >> (56 - 8 * i);
   } else if (ftype == 'p') {
@@ -276,6 +260,7 @@ static void put_be(bbuf *b, uval v, int bytes)
 }
 
 /* data values for dc.x */
+static int data_item;   /* emit_data_value() is called for a dc item, not a dcb fill */
 static void emit_data_value(section *s, bbuf *b, expr *e, int esize,
                             int ftype, int reldiff, ival pc)
 {
@@ -306,7 +291,14 @@ static void emit_data_value(section *s, bbuf *b, expr *e, int esize,
     bb_put(b, fb, esize);
     return;
   }
-  if (r.isflt) { r.v = (ival)r.f; r.isflt = 0; }
+  if (r.isflt && esize <= 2 && data_item) {
+    /* vasm: a float in byte or word data is an error (in a dcb fill it is
+     * truncated) */
+    error("data has illegal type");
+    bb_fill(b, 0, esize);
+    return;
+  }
+  if (r.isflt) { r.v = flt_to_ival(r.f); r.isflt = 0; }
   if (r.bad && e->op == X_SUB && !reldiff) {
     /* sym - <label in this section>: pc-relative data */
     eres la, rb;
@@ -505,9 +497,12 @@ void finalize_sections(void)
         int i;
         for (i = 0; i < a->u.data.n; i++) {
           dataitem *it = &a->u.data.items[i];
-          if (it->e)
+          if (it->e) {
+            data_item = 1;
             emit_data_value(s, b, it->e, a->u.data.esize, a->u.data.ftype,
                             a->u.data.reldiff, a->off);
+            data_item = 0;
+          }
           else {
             int pad = it->slen % a->u.data.esize;
             bb_put(b, it->str, it->slen);

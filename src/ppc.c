@@ -11,7 +11,7 @@
 #include <string.h>
 #include <ctype.h>
 
-void encode_float(int ftype, long double f, uint8_t *o);
+void encode_float(int ftype, double f, uint8_t *o);
 
 /* relocation modifiers */
 #define MOD_NONE 0
@@ -646,7 +646,7 @@ static void put_insn(bbuf *b, uint32_t w)
 static ival field(expr *e, int enc, eres *r)
 {
   eval_expr(e, r);
-  if (r->isflt) r->v = (ival)r->f;
+  if (r->isflt) r->v = flt_to_ival(r->f);
   (void)enc;
   return r->v;
 }

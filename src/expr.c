@@ -27,7 +27,7 @@ expr *new_num(ival v)
   e->v = v;
   return e;
 }
-expr *new_flt(long double f)
+expr *new_flt(double f)
 {
   expr *e = xcalloc(1, sizeof(*e));
   e->op = X_FLT;
@@ -331,8 +331,8 @@ int eval_expr(expr *e, eres *r)
   r->defined = a.defined && b.defined;
   if (a.bad || b.bad) { set_bad(r); return 0; }
   if (a.isflt || b.isflt) {
-    long double x = a.isflt ? a.f : (long double)a.v;
-    long double y = b.isflt ? b.f : (long double)b.v;
+    double x = a.isflt ? a.f : (double)a.v;
+    double y = b.isflt ? b.f : (double)b.v;
     if (a.sec || a.ext || b.sec || b.ext) { set_bad(r); return 0; }
     r->isflt = 1;
     switch (e->op) {
@@ -343,7 +343,7 @@ int eval_expr(expr *e, eres *r)
     case X_DIV: r->f = y != 0 ? x / y : 0; return 1;
     default:
       r->isflt = 0;
-      a.v = (ival)x; b.v = (ival)y;
+      a.v = flt_to_ival(x); b.v = flt_to_ival(y);
       a.isflt = b.isflt = 0;
       break;
     }
@@ -415,7 +415,7 @@ int eval_const(expr *e, ival *v)
 {
   eres r;
   eval_expr(e, &r);
-  if (r.isflt) { *v = (ival)r.f; return r.defined; }
+  if (r.isflt) { *v = flt_to_ival(r.f); return r.defined; }
   *v = r.v;
   return r.defined && !r.bad && !r.sec && !r.ext;
 }
@@ -427,9 +427,9 @@ int expr_is_float(expr *e)
   return r.isflt;
 }
 
-long double eres_float(eres *r)
+double eres_float(eres *r)
 {
-  return r->isflt ? r->f : (long double)r->v;
+  return r->isflt ? r->f : (double)r->v;
 }
 
 /* Fold constant sub-trees (used to freeze SET values). */

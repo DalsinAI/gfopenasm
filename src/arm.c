@@ -636,7 +636,7 @@ static int arm_create(const amn *m, int cond, const char *sfx, char **ops, int n
 static int ev(expr *e, eres *r)
 {
   eval_expr(e, r);
-  if (r->isflt) { r->v = (ival)r->f; r->isflt = 0; }
+  if (r->isflt) { r->v = flt_to_ival(r->f); r->isflt = 0; }
   return r->defined;
 }
 

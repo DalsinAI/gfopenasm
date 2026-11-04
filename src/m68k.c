@@ -11,7 +11,7 @@
 #include <ctype.h>
 #include <math.h>
 
-void encode_float(int ftype, long double f, uint8_t *o);
+void encode_float(int ftype, double f, uint8_t *o);
 
 /* ------------------------------------------------------------ cpu set */
 #define C000  0x0001
@@ -744,7 +744,7 @@ static void eval_op(ictx *c, expr *e, eres *r)
   (void)c;
   if (!e) { memset(r, 0, sizeof(*r)); r->defined = 1; return; }
   eval_expr(e, r);
-  if (r->isflt) { r->v = (ival)r->f; }
+  if (r->isflt) { r->v = flt_to_ival(r->f); }
 }
 
 /* emit a value of 'bytes' (1 -> low byte of a word, 2, 4) at the
@@ -965,14 +965,20 @@ static void emit_imm(ictx *c, expr *e, int isz)
         memset(buf, 0, sizeof(buf));
         for (i = 0; i < 8 && i < n; i++) buf[n - 1 - i] = (uint8_t)(u >> (8 * i));
       } else
-        encode_float(isz, r.isflt ? r.f : (long double)r.v, buf);
+        encode_float(isz, r.isflt ? r.f : (double)r.v, buf);
       for (i = 0; i < n; i += 2) bb_be16(c->out, (buf[i] << 8) | buf[i + 1]);
     }
     c->len += n;
     return;
   }
   eval_expr(e, &r);
-  if (r.isflt && (isz == 'l' || isz == 'w' || isz == 'b')) {
+  if (r.isflt && (isz == 'w' || isz == 'b')) {
+    if (c->enc) error("immediate operand has illegal type or size");
+    if (c->enc) bb_be16(c->out, 0);
+    c->len += 2;
+    return;
+  }
+  if (r.isflt && isz == 'l') {
     uint8_t buf[4];
     encode_float('s', r.f, buf);
     if (isz == 'l') {
@@ -2347,11 +2353,12 @@ static void fpu_check(ictx *c)
     error("instruction not supported on selected architecture");
 }
 
-/* lowest precision for a float immediate (opt-fconst) */
-static int fconst_size(ictx *c, operand *o, int s)
+/* lowest precision for a float immediate (opt-fconst); intw: a whole number
+ * that fits in a word becomes an integer word (not for fdiv -> fmul) */
+static int fconst_size_(ictx *c, operand *o, int s, int intw)
 {
   eres r;
-  long double f;
+  double f;
   if (!is_imm(o)) return s;
   eval_expr(o->bd, &r);
   if (!is_abs(&r) || !r.defined) return s;
@@ -2362,28 +2369,33 @@ static int fconst_size(ictx *c, operand *o, int s)
     return s;
   }
   if (!OPT(c) || !opt_fconst) return s;
-  if (s == 'p' || s == 'l' || s == 'w' || s == 'b') return s;
+  if (!s || s == 'p' || s == 'l' || s == 'w' || s == 'b') return s;
   f = r.f;
-  if ((long double)(float)f == f) return 's';
-  if ((long double)(double)f == f) return s == 's' ? 's' : 'd';
-  return s;
+  if (intw && f >= -32768 && f <= 32767 && f == (double)(int32_t)f && !(f == 0 && signbit(f))) {
+    /* a whole number that fits in a word: vasm loads it as an integer word */
+    o->bd = new_num((ival)f);
+    return 'w';
+  }
+  if (f - f == 0 && (double)(float)f == f) return 's';
+  return s == 's' ? 's' : 'd';
 }
+static int fconst_size(ictx *c, operand *o, int s) { return fconst_size_(c, o, s, 1); }
 
 /* fdiv #2^n -> fmul #2^-n (opt-fconst) */
-static int fdiv_pow2(ictx *c, operand *o, int opmode, long double *recip)
+static int fdiv_pow2(ictx *c, operand *o, int opmode, double *recip)
 {
   eres r;
-  long double f;
+  double f;
   int e;
   if (!is_imm(o) || !OPT(c) || !opt_fconst || o->rawhex) return opmode;
   if (c->ip->size != 's' && c->ip->size != 'd' && c->ip->size != 'x' && !expr_is_float(o->bd)) return opmode;
   if (opmode != 0x20 && opmode != 0x24 && opmode != 0x60 && opmode != 0x64) return opmode;
   eval_expr(o->bd, &r);
   if (!is_abs(&r) || !r.defined) return opmode;
-  f = r.isflt ? r.f : (long double)r.v;
+  f = r.isflt ? r.f : (double)r.v;
   if (f == 0) return opmode;
-  if (gf_frexpl(f < 0 ? -f : f, &e) != 0.5L) return opmode;
-  *recip = 1.0L / f;
+  if (gf_frexp(f < 0 ? -f : f, &e) != 0.5) return opmode;
+  *recip = 1.0 / f;
   return opmode + 3;
 }
 
@@ -2421,13 +2433,13 @@ static int h_fgen(ictx *c)
     return 1;
   }
   {
-    long double recip;
+    double recip;
     int om2 = fdiv_pow2(c, src, opmode, &recip);
     if (om2 != opmode) {
       expr *save = src->bd;
       int ok;
       src->bd = new_flt(recip);
-      s = fconst_size(c, src, 'x');
+      s = fconst_size_(c, src, 'x', 0);
       ok = ea_chk(c, 0, A_IMM, s, 4);
       if (ok) {
         emit16(c, fpw1(c, ea_bits(src)));
@@ -2438,7 +2450,7 @@ static int h_fgen(ictx *c)
       return ok;
     }
   }
-  if (is_imm(src)) s = fconst_size(c, src, s);
+  if (is_imm(src) && kind != 2 && kind != 3) s = fconst_size(c, src, s);   /* not ftst, fsincos */
   if (!s) s = 'w';
   {
     unsigned allowed = EA_DATA;
