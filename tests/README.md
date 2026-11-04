@@ -53,10 +53,17 @@ directive/output tests `a_*` are written by `gen/mk_arm.sh`.
 
 In a list file, `<dir>//<relative path>` assembles the source from `<dir>`.
 
+80x86: `gen/gen_x86.py` generates `x86_insn*.s` (oracle-filtered); `gen/mk_x86.sh`
+writes the `x_*` directive/ELF/bin/16-bit tests.
+
+    GFASM=$PWD/vasmx86_std VASM=$ORACLES/vasmx86_std sh tests/realworld.sh tests/realworld-x86.list
+
 ## Results (2026-11-04, vasm 2.0f oracle)
 
 | Set | Result |
 |---|---|
+| x86 committed corpus | 8/8 files match (about 7,600 instruction lines: integer, system, x87, MMX, SSE/SSE2, jumps; plus ELF, bin, `.code16` and macro tests) |
+| x86 real-world (robfinch rf80386: vbcc-generated i386 code and hand-written CPU test macros) | 17/17 match |
 | ARM committed corpus | 10/10 files match (about 2,300 ARM lines with all condition codes and suffixes, 340 THUMB lines, literal pools, plus ELF/bin/big-endian/THUMB directive tests) |
 | ARM real-world (Archimedes: kieranhj proto-arc, Mark Moxon's Lander and RunImage; GBA Frogger; NDS hello template) | 5/5 match |
 | PowerPC committed corpus | 10/10 files match (5 instruction files, about 7,400 lines incl. AltiVec and simplified mnemonics, plus std/mot, ELF/hunk/bin tests) |

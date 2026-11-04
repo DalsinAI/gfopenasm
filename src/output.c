@@ -13,6 +13,7 @@
 out_module *outmod;
 int opt_keepempty, opt_kick1hunks, opt_hunkpad = 0x4e71, opt_databss;
 char *idnt_name;
+char *elf_file_name;
 static FILE *of;
 static int out_le;    /* little-endian output (ELF for little-endian cpus) */
 
@@ -50,7 +51,7 @@ static int sec_output(section *s)
 {
   if (s->flags & SEC_OFFSET) return 0;
   if (sec_has_atoms(s)) return 1;
-  if (s == sec_first && !s->next) return 1;   /* empty source: one empty hunk */
+  if (s == sec_first && !s->next && outmod != &out_elf) return 1;   /* empty source: one empty hunk */
   if (s->size == 0 && !opt_keepempty && !sec_has_symbols(s) && !s->relocs) return 0;
   return 1;
 }
@@ -564,7 +565,7 @@ static int elf_write(FILE *f, const char *outname)
   }
   syms = xrealloc(syms, (nsyms + 1) * sizeof(esym));
   memset(&syms[nsyms], 0, sizeof(esym));
-  syms[nsyms].name = (uint32_t)st_add(&strs, basename_(input_name));
+  syms[nsyms].name = (uint32_t)st_add(&strs, elf_file_name ? elf_file_name : basename_(input_name));
   syms[nsyms].info = 4;         /* LOCAL FILE */
   syms[nsyms].shndx = 0xfff1;
   nsyms++;
@@ -587,6 +588,7 @@ static int elf_write(FILE *f, const char *outname)
         for (j = 0; j < nps; j++) if (ps[j] == y->sec) idx = j;
         if (idx < 0) continue;
         if (!global && opt_nosym) continue;
+        if (!global && y->name[0] == '.') continue;   /* oracle: .xxx labels stay local */
       } else if (y->type == S_IMPORT) {
         if (!(y->flags & SF_USED) && !(y->flags & SF_REFD)) continue;
         {
@@ -613,6 +615,7 @@ static int elf_write(FILE *f, const char *outname)
         syms[nsyms].shndx = 1 + idx;
         syms[nsyms].info = (global ? ((y->flags & SF_WEAK) ? 0x20 : 0x10) : 0) | (y->stype & 15);
         syms[nsyms].size = (uint32_t)y->ssize;
+        if (y->size_e) { ival sz = 0; eval_const(y->size_e, &sz); syms[nsyms].size = (uint32_t)sz; }
       } else if (y->type == S_IMPORT) {
         syms[nsyms].info = (y->flags & SF_WEAK) ? 0x20 : 0x10;
         syms[nsyms].shndx = 0;

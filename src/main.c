@@ -24,6 +24,7 @@ static int select_cpu(const char *n)
   if (!strcmp(n, "68k") || !strcmp(n, "m68k")) { cpu = &cpu_m68k; return 1; }
   if (!strcmp(n, "ppc")) { cpu = &cpu_ppc; return 1; }
   if (!strcmp(n, "arm")) { cpu = &cpu_arm; return 1; }
+  if (!strcmp(n, "x86")) { cpu = &cpu_x86; return 1; }
   return 0;
 }
 static int select_syntax(const char *n)
@@ -37,7 +38,7 @@ static void usage(void)
 {
   fprintf(stderr,
     "gfasm " GFASM_VERSION " - clean-room vasm-compatible assembler (MIT)\n"
-    "usage: gfasm [-cpu=68k|ppc|arm] [-syntax=mot|std] [options] file\n"
+    "usage: gfasm [-cpu=68k|ppc|arm|x86] [-syntax=mot|std] [options] file\n"
     "  -F<fmt>  output format: hunk, hunkexe, elf, bin\n"
     "  -o file  output file (default a.out)\n"
     "  -I path  include path     -D name[=val] define symbol\n"

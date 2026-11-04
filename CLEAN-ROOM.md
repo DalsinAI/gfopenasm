@@ -35,7 +35,9 @@ no vasm code.
 | Public WarpOS/PowerUP hunk constants (`HUNK_PPC_CODE` 0x4e9, `HUNK_RELRELOC26` 0x4ec, `EXT_RELREF26` 229) | PowerPC Amiga hunk objects |
 | ARM *Architecture Reference Manual* (ARMv4/ARMv4T edition, ARM DDI 0100) and the *ARM7TDMI Data Sheet* (ARM DDI 0029) | ARM and THUMB instruction encodings, condition codes, addressing modes |
 | *ELF for the ARM Architecture* (ARM IHI 0044) | R_ARM_* relocation numbers, mapping symbols `$a`/`$t`/`$d`, EABI e_flags |
-| vasm 2.0f oracle binaries in `~/AmiCradle/stoves/vasm-oracles/2.0f/bin` on daletop (`vasmppc_std`, `vasmppc_mot`, `vasmarm_std`, ...), built by the stove builder from the pinned vasm archive | black-box oracle only, as for 68k |
+| Intel *64 and IA-32 Architectures Software Developer's Manual*, vol. 2 (instruction set reference, opcode maps) and the AMD64 *Architecture Programmer's Manual* vol. 3/5 | 80x86 instruction encodings, ModRM/SIB, prefixes, x87, MMX, SSE/SSE2, 3DNow! |
+| *System V ABI Intel386 Architecture Processor Supplement* | R_386_* relocation numbers |
+| vasm 2.0f oracle binaries in `~/AmiCradle/stoves/vasm-oracles/2.0f/bin` on daletop (`vasmppc_std`, `vasmppc_mot`, `vasmarm_std`, `vasmx86_std`, ...), built by the stove builder from the pinned vasm archive | black-box oracle only, as for 68k |
 | vasm 2.0f binary (`vasmm68k_mot`, m68k backend 2.8c, mot syntax 3.19f) in the `os32` stove on daletop | black-box oracle only: byte-for-byte comparison of outputs for our own test sources |
 
 Real-world *test inputs* (not references, never copied into this repository):

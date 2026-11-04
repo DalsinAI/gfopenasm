@@ -122,3 +122,47 @@ copies them so that the bytes match:
 - gfasm accepts `.float`, `.double` and `.hword` for ARM; vasm does not.
 - Literal pool entries whose value is a forward-referenced equate may be
   ordered differently from vasm's.
+
+## 80x86 (phase 4) vasm behaviours copied
+
+`vasmx86_std` 2.0f (AT&T operand order, `%` registers, `$` immediates):
+
+- Without a suffix, the operation size comes from the last register operand;
+  other registers are used with their number (`add %al,%ax` is `addw`
+  with `%ax`). `shr %cl,(%eax)` is a byte shift. Registers encoded in the
+  opcode (`xchg`, `push`, `mov $imm,%reg` short forms) must have that size.
+- Immediates: the accumulator and sign-extended forms are chosen like GAS
+  (`addl $1,%eax` -> `83`, `addl $128,%eax` -> `05`), but 16-bit forms
+  accept 32-bit values and truncate them; the `80`/`c6`/`f6` forms take
+  any value. `mov $imm` uses `b8+r` only when the value fits, otherwise
+  `c7`. `shl $1` keeps the `c1` form.
+- A written displacement is kept, even `0(%eax)` (disp8 0). Large
+  displacements with 16-bit addressing are written as 32 bits. A segment
+  override equal to the default segment (`%ss:` with `%ebp`/`%esp`) is
+  dropped. Prefix order is 67, 66, segment.
+- `jmp`/`jcc` use the short form when the displacement of the *long* form
+  fits in 8 bits. `jcxz` is assembled as `jecxz`. A jump to an absolute
+  address in a relocatable section is relative to the section start.
+- `ljmp`/`lcall $seg,$off` (and `jmp`/`call` with two immediates) write the
+  selector before the offset.
+- Missing bytes that the oracle omits are omitted too: `sfence`/`lfence`/
+  `mfence` and `monitor`/`mwait` have no ModRM, `cmpeqps`... have no
+  immediate, 3DNow! (`pfadd`...) has no suffix byte. Their memory forms
+  put the condition (or suffix & 7) in ModRM.reg and the register in
+  ModRM.rm.
+- `cbw`, `cwd`, `movsbw`, and `smsw`/`str`/`sldt` with memory have no 0x66
+  prefix; `fstsw`/`finit`/`fclex` have no `fwait`. `fadd`, `fsub`... without
+  operands are the popping forms (`de c1`...), and `fsubp`/`fdivp` follow the
+  AT&T operand swap.
+- x87 memory operands take no `s`/`l` size suffix (`fld (%eax)` is single
+  precision); `fild`/`fist` use `s`, `l`, `q`/`ll`.
+- ELF: REL relocations (R_386_32, PC32, 16, PC16, 8, PC8), `.comm`
+  alignment 1, local labels starting with `.` are not in the symbol table,
+  `.file` names the FILE symbol, `.type`/`.size` are honoured.
+- std syntax (all targets): GNU numeric local labels `1:` with `1b`/`1f`.
+
+## 80x86 not implemented yet
+
+- x86-64: `-m64` and `.code64` are rejected.
+- CPU selection options are accepted but do not restrict the instruction set.
+- SSE3 and later, and most of 3DNow!, are not in the table.
