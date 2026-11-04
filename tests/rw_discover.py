@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Find real-world sources the oracle can assemble, for tests/realworld.sh.
+"""Find real-world sources that vasm can assemble, for tests/realworld.sh.
 
 usage: rw_discover.py VASM NDK_INCLUDE_I dir... > list
 
 For every *.s/*.asm/*.i below the given directories, a few option sets are
-tried with the oracle (black box).  The first one that works is printed as
+tried with vasm.  The first one that works is printed as
 a realworld.sh list line.
 """
 import os, subprocess, sys, tempfile

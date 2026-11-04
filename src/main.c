@@ -40,7 +40,7 @@ static int select_syntax(const char *n)
 static void usage(void)
 {
   fprintf(stderr,
-    "gfasm " GFASM_VERSION " - clean-room vasm-compatible assembler (MIT)\n"
+    "gfasm " GFASM_VERSION " - open-source vasm-compatible assembler (MIT)\n"
     "usage: gfasm [-cpu=68k|ppc|arm|x86|z80|6502] [-syntax=mot|std|oldstyle] [options] file\n"
     "  -F<fmt>  output format: hunk, hunkexe, elf, bin\n"
     "  -o file  output file (default a.out)\n"

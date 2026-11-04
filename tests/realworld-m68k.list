@@ -1,3 +1,4 @@
+# 68k (vasmm68k_mot), needs NDK=<NDK Include_I>: GFASM=names/vasmm68k_mot VASM=$VASM_DIR/vasmm68k_mot sh tests/realworld.sh tests/realworld-m68k.list
 -Fhunk -I@RW@/FPGAArcade_amiga_code/bootrom -I@RW@/FPGAArcade_amiga_code -I@NDK@ -I@NDK@/lvo | @RW@/FPGAArcade_amiga_code/bootrom/bootrom.s
 -Fhunk -I@RW@/FPGAArcade_amiga_code/addmem -I@RW@/FPGAArcade_amiga_code -I@NDK@ -I@NDK@/lvo | @RW@/FPGAArcade_amiga_code/addmem/addmem.asm
 -Fhunk -m68020 -I@RW@/FPGAArcade_amiga_code/oled -I@RW@/FPGAArcade_amiga_code -I@NDK@ -I@NDK@/lvo | @RW@/FPGAArcade_amiga_code/oled/oled.s

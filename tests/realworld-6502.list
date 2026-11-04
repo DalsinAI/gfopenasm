@@ -1,4 +1,4 @@
-# 6502 (vasm6502_oldstyle): GFASM=$PWD/vasm6502_oldstyle VASM=$ORACLES/vasm6502_oldstyle sh tests/realworld.sh tests/realworld-6502.list
+# 6502 (vasm6502_oldstyle): GFASM=names/vasm6502_oldstyle VASM=$VASM_DIR/vasm6502_oldstyle sh tests/realworld.sh tests/realworld-6502.list
 -Fbin -dotdir -wdc02 | @RW@/PlummersSoftwareLLC_Primes/Prime6502Assembly/solution_3/primes.s
 -Fbin -dotdir | @RW@/caseywdunn_eater_6502/blink.s
 -Fbin -dotdir | @RW@/caseywdunn_eater_6502/exploration/hello-world_post_vid08.s

@@ -3,7 +3,7 @@
  * Instruction encodings were written from the Motorola "M68000 Family
  * Programmer's Reference Manual" (M68000PM/AD), the MC68881/MC68882 and
  * MC68851 user's manuals.  Optimisation behaviour follows the vasm manual
- * (chapter "m68k cpu module") and black-box comparison with a vasm binary.
+ * (chapter "m68k cpu module") and comparison with vasm's output.
  */
 #include "gfasm.h"
 #include <stdlib.h>
@@ -1555,7 +1555,7 @@ static int h_shift(ictx *c)
     if (is_dn(a)) {
       if (OPT(c) && dir == 1 && !(c->ip->cpu & (C040 | C060)) &&
           (type == 0 || (type == 1 && opt_lsl))) {
-        /* vasm encodes this as ADD Dn,D0 (oracle-verified quirk) */
+        /* vasm encodes this as ADD Dn,D0 */
         emit16(c, 0xD000 | (sz2(s) << 6) | a->reg);
         return 1;
       }
@@ -3484,7 +3484,7 @@ static int m68k_init(void)
 
 static void m68k_define_symbols(void)
 {
-  /* bit values as observed with the oracle: FPU/MMU bits only when the
+  /* bit values as vasm sets them: FPU/MMU bits only when the
    * 68881/2 or 68851 was selected explicitly */
   ival v = 0;
   unsigned c = cpu_type;

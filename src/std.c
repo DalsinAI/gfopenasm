@@ -566,7 +566,7 @@ static int directive(const char *d, const char *rest, char **ops, int nops)
     if (nops > 2) cexpr(ops[2], &al);
     if (IS("comm")) {
       s->type = S_COMMON; s->val = v;
-      /* oracle: ARM always 4, x86 always 1 */
+      /* vasm: ARM always 4, x86 always 1 */
       s->align = al ? al : cpu->elf_machine == 3 ? 1 : (v < 8 || cpu->elf_machine == 40) ? 4 : 8;
       s->flags |= SF_EXPORT | SF_DEFINED;
     } else {

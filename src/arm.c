@@ -5,8 +5,8 @@
  * ARM and Thumb instruction sets) and the ARM7TDMI data sheet; ELF
  * relocation numbers from the public "ELF for the ARM Architecture" ABI
  * document.  vasm behaviour (options, directives, optimisations, messages)
- * from the vasm manual's ARM chapter and black-box comparison with a vasm
- * binary; see CLEAN-ROOM.md.  No vasm source was used. */
+ * from the vasm manual's ARM chapter and comparison with vasm's output;
+ * see docs/REFERENCES.md. */
 #include "gfasm.h"
 #include <stdlib.h>
 #include <string.h>
@@ -154,7 +154,7 @@ static int sfx_ok(const char *list, const char *s, size_t n)
   return 0;
 }
 
-/* parse "base[cond][suffix]" the way the oracle does */
+/* parse "base[cond][suffix]" the way vasm does */
 static const amn *parse_mnem(const char *m, size_t ml, int *cond, char *sfx)
 {
   int i;
@@ -215,7 +215,7 @@ typedef struct ainsn {
   int hat, wb, psr, fields, lflag;
   int pool_idx;    /* literal pool entry index */
   struct pool *pool;
-  int litmode;     /* 0 pool, 1 mov, 2 mvn, 3 adr (oracle: Rd lost) */
+  int litmode;     /* 0 pool, 1 mov, 2 mvn, 3 adr (as vasm: Rd is lost) */
   int big;         /* size decision: 2 instructions */
 } ainsn;
 
@@ -865,7 +865,7 @@ static void enc_ldst(ainsn *ip, section *s, ival pc, bbuf *out)
     if (!pcrel(&r, s, pc, 8, &d)) error("label from current section required");
     off = pc_off(d, half ? 8 : 12, &U);
     I = half;
-    if (half) rn = 0;     /* oracle: the base register field stays 0 */
+    if (half) rn = 0;     /* vasm: the base register field stays 0 */
   } else if (a->hasoff == 1) {
     ival v = cval(a->off, 1);
     ival lim = half ? 255 : 4095;
@@ -1004,7 +1004,7 @@ static void enc_arm(ainsn *ip, section *s, ival pc, bbuf *out, ival size)
       off = (uint32_t)((v >> 2) & 255);
       P = a->pre; W = a->pre ? a->wb : 0;
     } else W = a->wb;
-    /* oracle: the 'l' suffix (N bit) is accepted but not encoded */
+    /* vasm: the 'l' suffix (N bit) is accepted but not encoded */
     put32(out, c | 0x0c000000 | (uint32_t)P << 24 | (uint32_t)U << 23 |
                (uint32_t)W << 21 | (uint32_t)(ip->m->type == T_LDC) << 20 | (uint32_t)a->rn << 16 |
                (uint32_t)ip->r[1] << 12 | (uint32_t)ip->r[0] << 8 | off);
@@ -1086,7 +1086,7 @@ static int thumb_create(const char *m, size_t ml, char **ops, int nops)
     if (nops != 1 || (ip->r[0] = is_reg(ops[0])) < 0) ILLOPS();
     break;
   case TH_PUSH: case TH_POP: {
-    /* oracle: any register above r7 sets the lr/pc bit */
+    /* vasm: any register above r7 sets the lr/pc bit */
     if (nops != 1 || !parse_rlist(ops[0], &ip->rlist, &ip->hat) || ip->hat) ILLOPS();
     break;
   }
@@ -1267,7 +1267,7 @@ static void enc_thumb(ainsn *ip, section *s, ival pc, bbuf *out, ival size)
     if (!pcrel(&r, s, pc, 4, &d)) { error("operation not allowed on external symbols"); d = 0; }
     if (size == 4) {
       put16(out, 0xd000 | (uint32_t)(ip->cond ^ 1) << 8);
-      if (d < 0) d -= 2;   /* oracle: forward targets stay relative to the Bcc */
+      if (d < 0) d -= 2;   /* vasm: forward targets stay relative to the Bcc */
       if (d < -2048 || d > 2046) error("branch offset (%lld) is out of range", (long long)d);
       w = 0xe000 | (uint32_t)((d >> 1) & 0x7ff);
       break;
@@ -1330,7 +1330,7 @@ static void arm_encode(atom *a, section *s, ival pc, bbuf *out)
       ev(p->ent[i].e, &r);
       put32(out, (uint32_t)r.v);
     }
-    for (i = p->n - 1; i >= 0; i--) {     /* oracle: relocations in reverse order */
+    for (i = p->n - 1; i >= 0; i--) {     /* vasm: relocations in reverse order */
       eres r;
       ev(p->ent[i].e, &r);
       if (r.sec || r.ext) add_reloc(s, pc + 4 * i, 32, R_ABS, r.sec, r.ext, r.v);
@@ -1413,7 +1413,7 @@ static void arm_post_layout(void)
         ainsn *ip = a->u.insn.insn;
         k = ip->tid == -1 ? 'd' : (ip->thumb && ip->tid != TH_NOP) ? 't' : 'a';
         if (ip->tid == -1) at = a->off + a->size - 4 * ip->pool->n;
-      } else if (a->type == AT_DATA || a->type == AT_BYTES || a->type == AT_FLOAT)   /* not .space (oracle) */
+      } else if (a->type == AT_DATA || a->type == AT_BYTES || a->type == AT_FLOAT)   /* not .space (as vasm does) */
         k = 'd';
       if (k && k != cur) {
         char n[3] = { '$', (char)k, 0 };

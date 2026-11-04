@@ -4,8 +4,8 @@
  * Encodings from the public Zilog "Z80 Family CPU User Manual" (UM0080)
  * and the widely published undocumented-opcode tables (ixh/ixl, sll).
  * vasm behaviour (options, lo/hi operators, messages) from the vasm
- * manual's z80 chapter and black-box comparison with a vasm binary; see
- * CLEAN-ROOM.md.  No vasm source was used. */
+ * manual's z80 chapter and comparison with vasm's output; see
+ * docs/REFERENCES.md. */
 #include "gfasm.h"
 #include <stdlib.h>
 #include <string.h>
@@ -188,7 +188,7 @@ static int r8code(zop *o, int *pfx, expr **disp)
 {
   if (o->kind == Z_R8) { if (o->pfx) { if (*pfx && *pfx != o->pfx) return -1; *pfx = o->pfx; } return o->reg; }
   if (o->kind == Z_IND && o->reg == 2) return 6;
-  if (o->kind == Z_C) return 1;            /* oracle: (c) is c */
+  if (o->kind == Z_C) return 1;            /* vasm: (c) is c */
   if (o->kind == Z_IDX) { *pfx = o->pfx; *disp = o->e; return 6; }
   return -1;
 }
@@ -297,7 +297,7 @@ static int z80_emit(zinsn *ip, bbuf *b)
         return 0;
       }
       if ((k == 1 || k == 3) && !o[1].pfx) {
-        /* oracle: adc/sbc ix,rr keep the index prefix */
+        /* vasm: adc/sbc ix,rr keep the index prefix */
         if (o[0].pfx) bb_byte(b, o[0].pfx);
         bb_byte(b, 0xed); bb_byte(b, (k == 1 ? 0x4a : 0x42) | s << 4);
         return 0;
@@ -336,7 +336,7 @@ static int z80_emit(zinsn *ip, bbuf *b)
       op = (m[0] == 'b' ? 0x40 : m[0] == 'r' ? 0x80 : 0xc0) | (bitn & 7) << 3;
     }
     if ((i = r8code(t, &pfx, &disp)) < 0) return -2;
-    if (t->kind == Z_R8 && t->pfx) { bb_byte(b, t->pfx); bb_byte(b, 0xcb); bb_byte(b, op | i); return 0; }  /* oracle */
+    if (t->kind == Z_R8 && t->pfx) { bb_byte(b, t->pfx); bb_byte(b, 0xcb); bb_byte(b, op | i); return 0; }  /* as vasm does */
     if (disp) { bb_byte(b, pfx); bb_byte(b, 0xcb); val8(b, disp, 1); bb_byte(b, op | 6); return 0; }
     bb_byte(b, 0xcb); bb_byte(b, op | i);
     return 0;

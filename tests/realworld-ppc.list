@@ -1,3 +1,4 @@
+# PowerPC (vasmppc_std): GFASM=names/vasmppc_std VASM=$VASM_DIR/vasmppc_std sh tests/realworld.sh tests/realworld-ppc.list
 -many -mppc32 -mavec -Fhunk -I@RW@/Sakura-IT_SonnetAmiga -I@RW@/Sakura-IT_SonnetAmiga/include -I@RW@/Sakura-IT_SonnetAmiga/sonnetlib -I@RW@/Sakura-IT_SonnetAmiga/common | @RW@/Sakura-IT_SonnetAmiga/wosdb/exchandler.s
 -many -mppc32 -mavec -Fhunk -I@RW@/Sakura-IT_SonnetAmiga -I@RW@/Sakura-IT_SonnetAmiga/include -I@RW@/Sakura-IT_SonnetAmiga/sonnetlib -I@RW@/Sakura-IT_SonnetAmiga/common | @RW@/Sakura-IT_SonnetAmiga/wosdb/asmdebugger.s
 -many -mppc32 -mavec -Fhunk -I@RW@/Sakura-IT_SonnetAmiga -I@RW@/Sakura-IT_SonnetAmiga/include -I@RW@/Sakura-IT_SonnetAmiga/sonnetlib -I@RW@/Sakura-IT_SonnetAmiga/common | @RW@/Sakura-IT_SonnetAmiga/tools/template_ppc.p

@@ -1,7 +1,9 @@
 #!/bin/sh
-# Clone the public real-world test repositories (pinned) into ${RW:-$HOME/t5scratch/gfasm-rw}.
-# They are third-party code: used as test input only, never copied into this repo.
-RW=${RW:-$HOME/t5scratch/gfasm-rw}; mkdir -p "$RW"; cd "$RW" || exit 1
+# Clone the public real-world test repositories, each at a pinned commit, into
+# $RW (default tests/rw).  They are third-party code with their own licences:
+# test input only, never copied into this repository.
+top=$(cd "$(dirname "$0")/.." && pwd)
+RW=${RW:-$top/tests/rw}; mkdir -p "$RW"; cd "$RW" || exit 1
 [ -d FPGAArcade_amiga_code ] || { git init -q FPGAArcade_amiga_code && git -C FPGAArcade_amiga_code fetch -q --depth 1 https://github.com/FPGAArcade/amiga_code 9ed89723582a7a9c6a469ac28410421dd9c8108e && git -C FPGAArcade_amiga_code checkout -q FETCH_HEAD; }
 [ -d KONEY_crippled_cyborg_amiga ] || { git init -q KONEY_crippled_cyborg_amiga && git -C KONEY_crippled_cyborg_amiga fetch -q --depth 1 https://github.com/KONEY/crippled_cyborg_amiga 5fc4256332bfe1cc24fbfadc2460f420bace4563 && git -C KONEY_crippled_cyborg_amiga checkout -q FETCH_HEAD; }
 [ -d StefanKubsch_AmigaCoding ] || { git init -q StefanKubsch_AmigaCoding && git -C StefanKubsch_AmigaCoding fetch -q --depth 1 https://github.com/StefanKubsch/AmigaCoding 933c7f9ed0c6e31a684ec4e8a66b52645ebc93ae && git -C StefanKubsch_AmigaCoding checkout -q FETCH_HEAD; }

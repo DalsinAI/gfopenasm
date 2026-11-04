@@ -1,8 +1,9 @@
 # Known differences from vasm
 
-gfasm aims to produce the same object bytes as vasm. In the 68k phase, the
-committed corpus and every real-world source we test match byte-for-byte (see
-tests/README.md). The differences we know about are listed below.
+gfasm aims to produce the same object bytes as vasm 2.0f. The committed
+test corpus and every real-world source in the test lists match byte for
+byte (see [tests/README.md](../tests/README.md)). The differences that
+are known are listed below. Anything else that differs is a bug.
 
 ## Intentional or not yet implemented
 
@@ -17,10 +18,28 @@ tests/README.md). The differences we know about are listed below.
 | ColdFire, 68080, CPU32-only extras | not implemented | supported |
 | `opt` directive | the vasm-specific `o?` flags and `a` are honoured, Devpac `o1`–`o12` are accepted but not individually switched | full |
 
-## vasm behaviours we copy on purpose
+## General behaviours that gfasm matches
 
-The black-box comparison found some behaviours that the manual does not
-describe. gfasm copies them so that the output bytes match:
+Comparing outputs with vasm showed some behaviours that the vasm manual
+does not describe. gfasm does the same, so that the output bytes match:
+
+- Integer expression results are wrapped to signed 32 bits after every
+  operation. Literals that do not fit in 32 bits keep their 64-bit value.
+  Comparison and logical operators return -1 for true; unary `!` returns
+  1 or 0.
+- Hunk objects: memory attributes go in bits 30/31 of the hunk type
+  longword; other attributes set both bits and add an extra longword.
+  Code hunks are padded to a longword with the hunk pad word. Hunk
+  executables use `HUNK_DREL32` for short relocations.
+- ELF files are laid out as section data, `.shstrtab`, section headers,
+  `.symtab`, `.strtab`, then the `.rela*` sections.
+
+## 68k and mot syntax behaviours that gfasm matches
+
+- `cnop off,align` pads to `align` first and then adds `off` bytes. In
+  code sections the padding uses NOP words; `align` pads with zeros;
+  `odd` adds nothing when the address is already odd.
+- `dr.x` items are relative to the address of the directive.
 
 - `asl Dn` (one operand, which means `#1`) on 68000–68030 is optimised into
   `add Dn,D0` rather than `add Dn,Dn`.
@@ -46,7 +65,7 @@ describe. gfasm copies them so that the output bytes match:
 - `\@` numbers also count `rept` blocks and include files.
 - `__VASM` has the FPU/MMU bits only for an explicit `-m68881/2/-m68851`.
 
-## PowerPC (phase 2) vasm behaviours copied
+## PowerPC behaviours that gfasm matches
 
 - `vmaddfp` takes its operands in the order vD,vA,vB,vC. `vnmsubfp` uses the
   standard vD,vA,vC,vB order.
@@ -72,10 +91,10 @@ describe. gfasm copies them so that the output bytes match:
   `-opt-branch`.
 - `-little` is accepted, but it is not covered by the corpus.
 
-## ARM (phase 3) vasm behaviours copied
+## ARM behaviours that gfasm matches
 
 `vasmarm_std` 2.0f (ARM backend 0.6) has some surprising behaviours. gfasm
-copies them so that the bytes match:
+does the same, so that the bytes match:
 
 - Mnemonics are parsed as base + optional condition + optional suffix. When
   the rest does not form a valid suffix it is ignored, so `addseq` is a plain
@@ -123,7 +142,7 @@ copies them so that the bytes match:
 - Literal pool entries whose value is a forward-referenced equate may be
   ordered differently from vasm's.
 
-## 80x86 (phase 4) vasm behaviours copied
+## 80x86 behaviours that gfasm matches
 
 `vasmx86_std` 2.0f (AT&T operand order, `%` registers, `$` immediates):
 
@@ -145,7 +164,7 @@ copies them so that the bytes match:
   address in a relocatable section is relative to the section start.
 - `ljmp`/`lcall $seg,$off` (and `jmp`/`call` with two immediates) write the
   selector before the offset.
-- Missing bytes that the oracle omits are omitted too: `sfence`/`lfence`/
+- Bytes that vasm omits are omitted too: `sfence`/`lfence`/
   `mfence` and `monitor`/`mwait` have no ModRM, `cmpeqps`... have no
   immediate, 3DNow! (`pfadd`...) has no suffix byte. Their memory forms
   put the condition (or suffix & 7) in ModRM.reg and the register in
@@ -167,7 +186,7 @@ copies them so that the bytes match:
 - CPU selection options are accepted but do not restrict the instruction set.
 - SSE3 and later, and most of 3DNow!, are not in the table.
 
-## oldstyle syntax and Z80 (phase 5) vasm behaviours copied
+## oldstyle syntax and Z80 behaviours that gfasm matches
 
 `vasmz80_oldstyle` 2.0f:
 
@@ -194,7 +213,7 @@ copies them so that the bytes match:
   modes are rejected.
 - Output formats `ihex`, `srec` and `vobj`. Use `-Fbin`.
 
-## 6502 (phase 6) vasm behaviours copied
+## 6502 behaviours that gfasm matches
 
 `vasm6502_oldstyle` 2.0f:
 
@@ -216,5 +235,5 @@ copies them so that the bytes match:
   `-opt-branch` is accepted but does not rewrite branches; `ezp`, `zpage`,
   `setdp` and `zero` are missing.
 - The main file of nickgammon/G-Pascal (`gpascal.asm`) still differs from
-  the oracle; its other sources match.
+  vasm's output; its other sources match.
 - `-atari-com`, `-coco-ml`, `-dragon-bin` and `-oric-mc` headers.

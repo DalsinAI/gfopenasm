@@ -1,4 +1,4 @@
-# ARM (vasmarm_std): GFASM=./vasmarm_std VASM=$ORACLES/vasmarm_std sh tests/realworld.sh tests/realworld-arm.list
+# ARM (vasmarm_std): GFASM=names/vasmarm_std VASM=$VASM_DIR/vasmarm_std sh tests/realworld.sh tests/realworld-arm.list
 -m250 -Fbin -opt-adr | @RW@/kieranhj_proto-arc/proto-arc.asm
 -a2 -m2 -Fbin | @RW@/markmoxon_lander-source-code-acorn-archimedes/3-assembled-output/Lander.arm
 -a2 -m2 -Fbin | @RW@/markmoxon_lander-source-code-acorn-archimedes//3-assembled-output/RunImage.arm

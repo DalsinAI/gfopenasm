@@ -1,6 +1,6 @@
 /* gfasm - "oldstyle" syntax module for 8-bit CPUs (vasm "oldstyle"
  * compatible).  MIT License.  Written from the vasm manual's chapter on the
- * oldstyle syntax module and black-box comparison with a vasm binary. */
+ * oldstyle syntax module and comparison with vasm's output. */
 #include "gfasm.h"
 #include <stdlib.h>
 #include <string.h>
@@ -100,7 +100,7 @@ static int os_number(const char **pp, expr **out)
     else if (!opt_noi && n > 1 && (last == 'o' || last == 'q')) { base = 8; n--; }
     else if (!opt_noi && n > 1 && last == 'd' && strspn(s, "0123456789") == n - 1) { base = 10; n--; }
     else if (!opt_noc && n > 1 && s[0] == '0' && strspn(s, "0123456789") == n) {
-      /* C-style octal; the oracle stops at the first non-octal digit */
+      /* C-style octal; vasm stops at the first non-octal digit */
       for (i = 0; i < n && s[i] < '8'; i++) v = v * 8 + (s[i] - '0');
       *pp = p;
       *out = new_num((ival)(int32_t)(uint32_t)v);
@@ -324,7 +324,7 @@ static void data(char **ops, int nops, int esize, int strings, int term, int hib
   int i;
   static char zero[] = "0";
   static char *zop[1] = { zero };
-  if (!nops) { ops = zop; nops = 1; }   /* oracle: no operand = one zero element */
+  if (!nops) { ops = zop; nops = 1; }   /* vasm: no operand = one zero element */
   for (i = 0; i < nops; i++) {
     const char *o = ops[i];
     atom *a;
@@ -453,7 +453,7 @@ static int cond_value(const char *d, const char *rest)
 
 static const char *dirname_of(const char *w, size_t l, char *buf, size_t bs)
 {
-  if (opt_dotdir && *w == '.') { w++; l--; }   /* oracle: the dot is optional */
+  if (opt_dotdir && *w == '.') { w++; l--; }   /* vasm: the dot is optional */
   if (l >= bs) return NULL;
   memcpy(buf, w, l);
   buf[l] = 0;
@@ -511,7 +511,7 @@ static int directive(const char *d, const char *rest, char **ops, int nops, cons
   if (IS("byte") || IS("db") || IS("defb") || IS("dfb") || IS("fcb") || IS("asc") || (IS("data") && !opt_sect)) { data(ops, nops, 1, 1, -1, 0, NULL); return 1; }
   if (IS("word") || IS("dw") || IS("defw") || IS("dfw") || IS("fdb") || IS("addr") || IS("wor")) { data(ops, nops, 2, 0, -1, 0, NULL); return 1; }
   if (IS("defl")) { data(ops, nops, 4, 0, -1, 0, NULL); return 1; }
-  if (IS("defp")) { mask16 = 1; data(ops, nops, 2, 0, -1, 0, NULL); mask16 = 0; return 1; }   /* oracle: 2 bytes */
+  if (IS("defp")) { mask16 = 1; data(ops, nops, 2, 0, -1, 0, NULL); mask16 = 0; return 1; }   /* vasm: 2 bytes */
   if ((IS("text") && !opt_sect) || IS("defm") || IS("ascii") || IS("fcc")) { data(ops, nops, 1, 1, -1, 0, NULL); return 1; }
   if (IS("fcs")) { data(ops, nops, 1, 1, -1, 1, NULL); return 1; }
   if (IS("str")) { data(ops, nops, 1, 1, 13, 0, NULL); return 1; }
@@ -544,7 +544,7 @@ static int directive(const char *d, const char *rest, char **ops, int nops, cons
       return 1;
     }
     if (cursec && (cursec->flags & SEC_ABS) && v >= cursec->org) {
-      /* oracle: org inside an absolute section pads up to the new address */
+      /* vasm: org inside an absolute section pads up to the new address */
       atom *a = add_atom(AT_RORG);
       a->u.rorg.target = new_num(v - cursec->org);
       return 1;
@@ -712,7 +712,7 @@ static void statement(const char *w0, const char *lab, size_t ll, int *labdone)
   }
   if (dn) {
     if (is_cond(dn)) {
-      if (lab && !*labdone && cond_active()) define_label(lab, ll);   /* oracle: label on an if line */
+      if (lab && !*labdone && cond_active()) define_label(lab, ll);   /* vasm: label on an if line */
       if (cond_active()) cond_push(cond_value(dn, skip_ws(p))); else cond_push(0);
       *labdone = 1; return;
     }
@@ -839,7 +839,7 @@ static void os_init(void)
   syntax_ident = os_ident;
   syntax_pcexpr = os_pc;
   if (is_z80()) pcchar = '$';
-  opt_esc = os_esc;     /* oracle: no escape sequences by default (-esc) */
+  opt_esc = os_esc;     /* vasm: no escape sequences by default (-esc) */
   { extern int char_bs_pair; char_bs_pair = 1; }
   ident_dots = 1;
   { extern const char *default_sec_name; default_sec_name = ".text"; }

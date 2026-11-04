@@ -1,8 +1,8 @@
-/* gfasm - a clean-room, vasm-compatible multi-target assembler.
- * Copyright (c) 2026 DalsinAI / Team 5. MIT License, see LICENSE.
+/* gfopenasm (gfasm) - an open-source, vasm-compatible multi-target assembler.
+ * Copyright (c) 2026 DalsinAI. MIT License, see LICENSE.
  *
- * Common core declarations.  This file was written from scratch; see
- * CLEAN-ROOM.md for the references used.
+ * Common core declarations.  The documents the assembler is written from
+ * are listed in docs/REFERENCES.md.
  */
 #ifndef GFASM_H
 #define GFASM_H

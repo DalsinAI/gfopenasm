@@ -5,7 +5,7 @@
  * Manual / "The AmigaDOS Technical Reference") and the System V ABI ELF
  * specification with the m68k processor supplement relocation numbers.
  * Layout details that the specs leave open (ordering, padding) were
- * matched by black-box comparison. */
+ * matched by comparison with vasm's output. */
 #include "gfasm.h"
 #include <stdlib.h>
 #include <string.h>
@@ -596,7 +596,7 @@ static int elf_write(FILE *f, const char *outname)
         for (j = 0; j < nps; j++) if (ps[j] == y->sec) idx = j;
         if (idx < 0) continue;
         if (!global && opt_nosym) continue;
-        if (!global && y->name[0] == '.') continue;   /* oracle: .xxx labels stay local */
+        if (!global && y->name[0] == '.') continue;   /* vasm: .xxx labels stay local */
       } else if (y->type == S_IMPORT) {
         if (!(y->flags & SF_USED) && !(y->flags & SF_REFD)) continue;
         {
