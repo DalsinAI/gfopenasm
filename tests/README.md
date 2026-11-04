@@ -35,11 +35,23 @@ These are third-party sources, used only as test input:
 `rw_discover.py` rebuilds a list from a directory tree. For each file it
 keeps the first option set the oracle accepts.
 
+PowerPC: `gen/gen_ppc.py` generates `ppc_insn*.s` (oracle-filtered). The
+std/mot directive and output tests `p_*` are written by `gen/mk_ppc.sh`. Files
+carry a `# gfasm-cpu: ppc std` line (or `; gfasm-cpu: ppc mot` in mot syntax).
+`gen-expected.sh` picks the oracle `vasm<cpu>_<syntax>` from
+`$ORACLES` (default `~/AmiCradle/stoves/vasm-oracles/2.0f/bin`).
+
+    GFASM=./vasmppc_std VASM=$ORACLES/vasmppc_std sh tests/realworld.sh tests/realworld-ppc.list
+
+(`vasmppc_std` here is a symlink to `gfasm`.)
+
 ## Results (2026-11-04, vasm 2.0f oracle)
 
 | Set | Result |
 |---|---|
-| committed corpus | 30/30 files match (about 18,000 instruction lines plus 16 directive/output tests) |
+| PowerPC committed corpus | 10/10 files match (5 instruction files, about 7,400 lines incl. AltiVec and simplified mnemonics, plus std/mot, ELF/hunk/bin tests) |
+| PowerPC real-world (SonnetAmiga WarpOS sources, EEC `ppcifuncs.asm`) | 4/4 match |
+| committed corpus (68k) | 30/30 files match (about 18,000 instruction lines plus 16 directive/output tests) |
 | public real-world (10 repos: FPGAArcade amiga_code, KONEY, StefanKubsch AmigaCoding, Hamazing, hukkax, amiga-boing, bumbershoot, rosetta-pi-spigot, amiga_asmdev_workflow, amiga-font-luett) | 93/93 match |
 | AmigaChrome-local (AmiWind engine/aga asm with the Makefile's `-phxass`/`-kick1hunks` options, libSDL2-amigaos3 c2p as used by the Chocolate Doom build, Os32Hello) | 10/10 match |
 

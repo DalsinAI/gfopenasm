@@ -17,11 +17,14 @@ mkdir -p "$out"
 pass=0; fail=0; failed=""
 for src in "$top"/tests/corpus/*.s; do
   name=$(basename "$src" .s)
-  args=$(sed -n 's/^; gfasm-args: *//p' "$src" | head -1)
+  args=$(sed -n 's/^[;#] gfasm-args: *//p' "$src" | head -1)
+  cs=$(sed -n 's/^[;#] gfasm-cpu: *//p' "$src" | head -1)
+  [ -z "$cs" ] && cs="m68k mot"
+  set -- $cs
   [ -z "$args" ] && args="-Fhunk"
   exp="$top/tests/expected/$name.out"
   expfail="$top/tests/expected/$name.fail"
-  ( cd "$(dirname "$src")" && "$G" -quiet $args -o "$out/$name.out" "$name.s" ) >"$out/$name.log" 2>&1
+  ( cd "$(dirname "$src")" && "$G" -cpu=$1 -syntax=$2 -quiet $args -o "$out/$name.out" "$name.s" ) >"$out/$name.log" 2>&1
   rc=$?
   ok=0
   if [ -f "$expfail" ]; then

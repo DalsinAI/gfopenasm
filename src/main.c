@@ -5,6 +5,7 @@
 #include <ctype.h>
 
 cpu_module *cpu = &cpu_m68k;
+syntax_module *syntax = &syntax_mot;
 const char *input_name;
 const char *output_name;
 int opt_nosym, opt_x, opt_pic, opt_unnamed_sections, opt_chklabels;
@@ -17,9 +18,19 @@ extern int opt_esc, opt_spaces, opt_align, opt_devpac, opt_phxass, opt_localu, o
 extern int ident_dots;
 extern uint16_t cnop_code;
 extern int opt_keepempty, opt_kick1hunks, opt_hunkpad, opt_databss;
-void mot_init(void);
-void mot_finish(void);
-void mot_parse_line(const char *line);
+
+static int select_cpu(const char *n)
+{
+  if (!strcmp(n, "68k") || !strcmp(n, "m68k")) { cpu = &cpu_m68k; return 1; }
+  if (!strcmp(n, "ppc")) { cpu = &cpu_ppc; return 1; }
+  return 0;
+}
+static int select_syntax(const char *n)
+{
+  if (!strcmp(n, "mot")) { syntax = &syntax_mot; return 1; }
+  if (!strcmp(n, "std")) { syntax = &syntax_std; return 1; }
+  return 0;
+}
 
 static void usage(void)
 {
@@ -77,6 +88,28 @@ int main(int argc, char **argv)
   out_module *om;
 
   outmod = &out_bin;   /* vasm default would be "test"; bin is our default */
+  {
+    /* called as vasm<cpu>_<syntax>? */
+    const char *b = strrchr(argv[0], '/');
+    b = b ? b + 1 : argv[0];
+    if (!strncmp(b, "vasm", 4)) {
+      const char *u = strchr(b, '_');
+      if (u) {
+        char *c = xstrndup(b + 4, u - b - 4);
+        if (!strcmp(c, "m68k")) select_cpu("68k"); else select_cpu(c);
+        free(c);
+        select_syntax(u + 1);
+      }
+    }
+    for (i = 1; i < argc; i++) {
+      if (!strncmp(argv[i], "-cpu=", 5) && !select_cpu(argv[i] + 5)) {
+        fprintf(stderr, "fatal error: cpu <%s> not supported\n", argv[i] + 5); return 1;
+      }
+      if (!strncmp(argv[i], "-syntax=", 8) && !select_syntax(argv[i] + 8)) {
+        fprintf(stderr, "fatal error: syntax <%s> not supported\n", argv[i] + 8); return 1;
+      }
+    }
+  }
   /* first pass: output format, so that defaults depend on it */
   for (i = 1; i < argc; i++)
     if (!strncmp(argv[i], "-F", 2)) fmt = argv[i] + 2;
@@ -99,14 +132,8 @@ int main(int argc, char **argv)
       continue;
     }
     if (!strncmp(a, "-F", 2)) continue;
-    if (!strncmp(a, "-cpu=", 5)) {
-      if (strcmp(a + 5, "68k") && strcmp(a + 5, "m68k")) { fprintf(stderr, "fatal error: cpu <%s> not supported yet\n", a + 5); return 1; }
-      continue;
-    }
-    if (!strncmp(a, "-syntax=", 8)) {
-      if (strcmp(a + 8, "mot")) { fprintf(stderr, "fatal error: syntax <%s> not supported yet\n", a + 8); return 1; }
-      continue;
-    }
+    if (!strncmp(a, "-cpu=", 5) || !strncmp(a, "-syntax=", 8)) continue;
+    if (syntax->option && syntax->option(a)) continue;
     if (!strcmp(a, "-o")) { if (++i < argc) output_name = argv[i]; continue; }
     if (!strncmp(a, "-o", 2) && a[2]) { output_name = a + 2; continue; }
     if (!strcmp(a, "-I")) { if (++i < argc) add_incpath(argv[i]); continue; }
@@ -168,18 +195,18 @@ int main(int argc, char **argv)
     const char *sl = strrchr(input_name, '/');
     compile_dir = sl ? xstrndup(input_name, sl - input_name + 1) : xstrdup("");
   }
-  mot_init();
+  syntax->init();
   cpu->define_symbols();
   for (i = 0; i < ndefs; i++) define_cmdline(defs[i]);
 
   push_file(input_name);
   {
     const char *l;
-    while ((l = next_line()) != NULL) mot_parse_line(l);
+    while ((l = next_line()) != NULL) syntax->parse_line(l);
   }
   curpos.file = NULL;
   curpos.text = NULL;
-  mot_finish();
+  syntax->finish();
 
   /* undefined symbols become imports */
   {

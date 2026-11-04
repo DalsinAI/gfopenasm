@@ -45,3 +45,29 @@ describe. gfasm copies them so that the output bytes match:
 - `dcb.s` with a float fill value produces zeros.
 - `\@` numbers also count `rept` blocks and include files.
 - `__VASM` has the FPU/MMU bits only for an explicit `-m68881/2/-m68851`.
+
+## PowerPC (phase 2) vasm behaviours copied
+
+- `vmaddfp` takes its operands in the order vD,vA,vB,vC. `vnmsubfp` uses the
+  standard vD,vA,vC,vB order.
+- `subi rD,rA,label` relocates `+label` but stores `-label` in the
+  instruction.
+- `.lcomm sym,size,align`: the alignment is in bytes, not bits.
+- `.string`/`.asciz` with several strings concatenates them and adds a single
+  terminating zero.
+- A float constant in `.long` or `.quad` data stores the IEEE single or double
+  bits.
+- Conditional-branch hints follow the old `y` bit rule: `+` sets it for
+  forward branches, `-` sets it for backward ones.
+- A `d(r2)` or `d(r13)` operand with a relocatable displacement becomes a
+  base-relative (small data) relocation: `HUNK_DREL16`/`EXT_DEXT16` in hunk
+  objects.
+- std syntax: local labels are digits only (`.1`, `1$`). `$` is the current
+  pc. `\@` expands to a plain number.
+- `extsw` is accepted without `-mppc64`. Other 64-bit instructions are not.
+
+## PowerPC not implemented yet
+
+- 64-bit instructions (`-mppc64`), POWER/POWER2, 40x/44x/Book-E/e500 extras,
+  `-opt-branch`.
+- `-little` is accepted, but it is not covered by the corpus.

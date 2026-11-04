@@ -139,6 +139,8 @@ typedef struct symbol {
   struct symbol *hnext;
   struct symbol *lnext; /* definition order */
   int order;
+  int stype;           /* ELF symbol type (0 notype, 1 object, 2 func) */
+  ival ssize;          /* ELF symbol size */
 } symbol;
 
 symbol *sym_lookup(const char *name);
@@ -187,7 +189,9 @@ typedef struct reloc {
   struct reloc *next;
   ival off;            /* byte offset in section */
   int size;            /* bits */
-  int type;            /* R_ABS, R_PC, R_SD */
+  int type;            /* R_ABS, R_PC, R_SD, ... */
+  int mod;             /* cpu specific modifier (e.g. PPC @l/@h/@ha) */
+  uint32_t mask;       /* bit mask inside the field, 0 = whole field */
   struct section *tsec;
   symbol *tsym;
   ival addend;
@@ -196,6 +200,9 @@ typedef struct reloc {
 #define R_ABS 0
 #define R_PC  1
 #define R_SD  2
+#define R_SD2 3
+#define R_PLT 4
+#define R_GOT 5
 
 typedef struct section {
   char *name;
@@ -213,6 +220,7 @@ typedef struct section {
   int has_code;
   struct section *next;
   int sdsec;
+  int elfflags;        /* SHF_* from std section attributes, 0 = default */
 } section;
 
 extern section *sec_first, *sec_last, *cursec;
@@ -238,6 +246,7 @@ typedef struct macro {
   char *name;
   char **lines; int nlines;
   char **argnames; int nargnames;
+  char **argdefs;
   struct macro *next;
   srcpos defpos;
 } macro;
@@ -256,6 +265,7 @@ void end_assembly(void);
 char *find_include(const char *name, int bin);
 void add_incpath(const char *p);
 extern int macro_args_max;
+extern int macro_id_plain;
 extern int max_macro_recursion;
 extern int ignore_mult_inc;
 extern char *compile_dir;
@@ -286,7 +296,24 @@ typedef struct cpu_module {
   void (*define_symbols)(void);
   int  (*float_data)(int ftype, eres *r, uint8_t *out); /* encode float */
   int  big_endian;
+  int  insn_align;     /* automatic instruction alignment */
+  int  data_align;     /* syntax modules align data naturally */
+  int  addr_bits;
+  int  elf_machine;
+  /* ELF relocation type for a relocation, -1 if unsupported */
+  int  (*elf_reloc)(struct reloc *r);
 } cpu_module;
+extern cpu_module cpu_ppc;
+
+typedef struct syntax_module {
+  const char *name;
+  void (*init)(void);
+  void (*parse_line)(const char *line);
+  void (*finish)(void);
+  int  (*option)(const char *opt);
+} syntax_module;
+extern syntax_module *syntax;
+extern syntax_module syntax_mot, syntax_std;
 extern cpu_module *cpu;
 extern cpu_module cpu_m68k;
 

@@ -87,6 +87,7 @@ void set_internal(symbol *s, ival v)
 /* ----------------------------------------------------------- sections */
 section *sec_first, *sec_last, *cursec;
 int default_sec_is_org;
+const char *default_sec_name = "CODE";
 
 static section *link_section(section *s)
 {
@@ -138,7 +139,7 @@ section *default_section(void)
     if (default_sec_is_org)
       cursec = new_org_section(0);
     else
-      cursec = new_section("CODE", ST_CODE, 0);
+      cursec = new_section(default_sec_name, ST_CODE, 0);
   }
   return cursec;
 }
@@ -235,6 +236,7 @@ void encode_float(int ftype, long double f, uint8_t *o)
 
 /* ------------------------------------------------------- value output */
 int final_pass, pass_no, grow_only;
+int reloc_inplace = 1;
 
 void add_reloc(section *s, ival off, int size, int type, section *tsec,
                symbol *tsym, ival addend)
@@ -255,7 +257,10 @@ void add_reloc(section *s, ival off, int size, int type, section *tsec,
 static void put_be(bbuf *b, uval v, int bytes)
 {
   int i;
-  for (i = bytes - 1; i >= 0; i--) bb_byte(b, (int)(v >> (8 * i)));
+  if (cpu->big_endian)
+    for (i = bytes - 1; i >= 0; i--) bb_byte(b, (int)(v >> (8 * i)));
+  else
+    for (i = 0; i < bytes; i++) bb_byte(b, (int)(v >> (8 * i)));
 }
 
 /* data values for dc.x */
@@ -272,7 +277,21 @@ static void emit_data_value(section *s, bbuf *b, expr *e, int esize,
       return;
     }
     encode_float(ftype, eres_float(&r), buf);
+    if (!cpu->big_endian) {
+      int i, n = ftype == 'x' ? 10 : esize;
+      for (i = 0; i < n / 2; i++) { uint8_t t = buf[i]; buf[i] = buf[n - 1 - i]; buf[n - 1 - i] = t; }
+    }
     bb_put(b, buf, esize);
+    return;
+  }
+  if (r.isflt && (esize == 4 || esize == 8)) {
+    /* float constant in integer data: IEEE bits (oracle) */
+    uint8_t fb[8];
+    int i;
+    encode_float(esize == 8 ? 'd' : 's', r.f, fb);
+    if (!cpu->big_endian)
+      for (i = 0; i < esize / 2; i++) { uint8_t t = fb[i]; fb[i] = fb[esize - 1 - i]; fb[esize - 1 - i] = t; }
+    bb_put(b, fb, esize);
     return;
   }
   if (r.isflt) { r.v = (ival)r.f; r.isflt = 0; }
@@ -291,6 +310,7 @@ static void emit_data_value(section *s, bbuf *b, expr *e, int esize,
     }
   } else if (r.sec || r.ext) {
     add_reloc(s, b->n, esize * 8, R_ABS, r.sec, r.ext, r.v);
+    if (!reloc_inplace) r.v = 0;
   }
   if (esize < 8 && !r.sec && !r.ext) {
     ival lo = -(1LL << (esize * 8 - 1));
@@ -356,18 +376,20 @@ static int sizing_pass(void)
       switch (a->type) {
       case AT_LABEL: {
         ival v = pc;
-        if (!opt_noialign && next_is_insn(a) && (v & 1)) v++;
+        if (!opt_noialign && next_is_insn(a) && cpu->insn_align > 1)
+          v = (v + cpu->insn_align - 1) / cpu->insn_align * cpu->insn_align;
         if (a->u.label.sym->val != v) changed = 1;
         a->u.label.sym->val = v;
         a->off = v;
         continue;
       }
       case AT_INSN:
-        if (!opt_noialign && (pc & 1)) pc++;
+        if (!opt_noialign && cpu->insn_align > 1)
+          pc = (pc + cpu->insn_align - 1) / cpu->insn_align * cpu->insn_align;
         a->off = pc;
         s->size = pc;
         sz = cpu->insn_size(a, s, pc);
-        if (s->align < 2) s->align = 2;
+        if (s->align < cpu->insn_align) s->align = cpu->insn_align;
         break;
       case AT_DATA:
         a->off = pc;
@@ -588,6 +610,7 @@ char *find_include(const char *name, int bin)
 /* ------------------------------------------------------------ macros */
 static macro *macros;
 int macro_args_max = 9;
+int macro_id_plain;
 int max_macro_recursion = 1000;
 
 macro *find_macro(const char *name, size_t len)
@@ -858,6 +881,7 @@ static char *expand_macro_line(source *s, const char *l)
         else { error("macro id pull without matching push"); tmp[0] = 0; }
       } else
         snprintf(tmp, sizeof(tmp), "_%06d", s->uid);
+      if (macro_id_plain && tmp[0] == '_') { int n = atoi(tmp + 1); snprintf(tmp, sizeof(tmp), "%d", n); }
       append(&buf, &len, &cap, tmp, strlen(tmp));
       continue;
     }

@@ -3,8 +3,9 @@
 An MIT-licensed, clean-room assembler that accepts the same sources and
 command line as vasm, so it can replace vasm as a build tool.
 
-**Status:** phase 1 (Motorola 68k, `mot` syntax) is in progress. Other CPUs
-are planned; see [docs/ROADMAP.md](docs/ROADMAP.md).
+**Status:** Motorola 68k (`mot` syntax) and PowerPC (32-bit + AltiVec, `std`
+and `mot` syntax) produce output that is byte-identical to vasm's. ARM, x86,
+Z80 and 6502 are next; see [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Why
 
@@ -23,9 +24,11 @@ Portable C11 with no dependencies. It builds on Linux x86-64 and ARM64.
 ## Usage
 
     gfasm -cpu=68k -syntax=mot [vasm options] source.s
+    gfasm -cpu=ppc -syntax=std [vasm options] source.s
 
-The binary also works under vasm's names. If you install or symlink it as
-`vasmm68k_mot`, it selects 68k and mot syntax from its own name:
+The binary also works under vasm's names. If you install or symlink it as a vasm name
+(`vasmm68k_mot`, `vasmppc_std`, `vasmppc_mot`), it selects the CPU and syntax
+from its own name:
 
     vasmm68k_mot -Fhunk -o foo.o foo.s
     vasmm68k_mot -Fhunkexe -nosym -o foo foo.s

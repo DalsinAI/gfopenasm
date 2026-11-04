@@ -3501,6 +3501,7 @@ static void m68k_define_symbols(void)
   if (fpu_explicit) v |= 64;
   if (mmu_851) v |= 128;
   set_internal(sym_get("__VASM"), v);
+  sym_get("__VASM")->flags |= SF_INTERNAL;
 }
 
 cpu_module cpu_m68k = {
@@ -3514,5 +3515,5 @@ cpu_module cpu_m68k = {
   m68k_parse_reg,
   m68k_define_symbols,
   NULL,
-  1
+  1, 2, 0, 32, 4, NULL
 };
