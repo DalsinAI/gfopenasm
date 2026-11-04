@@ -1,0 +1,36 @@
+name: gfasm (build with gcc and clang, committed oracle corpus)
+
+# NOT a GitHub Actions workflow (it lives outside .github/workflows): new DalsinAI repositories
+# can't use the self-hosted runners yet. Team 5's repo-ci.sh on daletop reads this job, runs its
+# `run:` steps in ubuntu:24.04 on amigachromebuild, and posts the result as the commit status
+# m68k-daletop (see CI.md). Keep it in the workflow format.
+on:
+  workflow_dispatch:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gfasm:
+    runs-on: [self-hosted, guest-m68k]
+    container: ubuntu:24.04
+    env:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      DEBIAN_FRONTEND: noninteractive
+    timeout-minutes: 20
+    steps:
+      - name: Base packages
+        run: apt-get update && apt-get install -y --no-install-recommends build-essential clang python3 ca-certificates git
+      - uses: actions/checkout@v4
+      - name: Build with gcc (warnings are errors)
+        run: make clean && make CFLAGS="-O2 -std=c11 -Wall -Wextra -Wno-unused-parameter -Werror"
+      - name: Build with clang (warnings are errors)
+        run: make clean && make CC=clang CFLAGS="-O2 -std=c11 -Wall -Wextra -Wno-unused-parameter -Werror"
+      - name: Committed corpus (byte-for-byte against the stored vasm oracle output)
+        run: make test
+      - name: Scripts parse
+        run: |
+          for f in tests/*.sh tests/gen/*.sh; do sh -n "$f"; done
+          python3 -m py_compile tests/*.py tests/gen/*.py
