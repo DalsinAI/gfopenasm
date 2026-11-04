@@ -8,7 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <math.h>
 int char_bs_pair;
 
 int (*syntax_number)(const char **pp, expr **out);
@@ -27,7 +26,7 @@ expr *new_num(ival v)
   e->v = v;
   return e;
 }
-expr *new_flt(double f)
+expr *new_flt(fval f)
 {
   expr *e = xcalloc(1, sizeof(*e));
   e->op = X_FLT;
@@ -331,19 +330,19 @@ int eval_expr(expr *e, eres *r)
   r->defined = a.defined && b.defined;
   if (a.bad || b.bad) { set_bad(r); return 0; }
   if (a.isflt || b.isflt) {
-    double x = a.isflt ? a.f : (double)a.v;
-    double y = b.isflt ? b.f : (double)b.v;
+    fval x = a.isflt ? a.f : f_from_int(a.v);
+    fval y = b.isflt ? b.f : f_from_int(b.v);
     if (a.sec || a.ext || b.sec || b.ext) { set_bad(r); return 0; }
     r->isflt = 1;
     switch (e->op) {
-    case X_NEG: r->f = -x; return 1;
-    case X_ADD: r->f = x + y; return 1;
-    case X_SUB: r->f = x - y; return 1;
-    case X_MUL: r->f = x * y; return 1;
-    case X_DIV: r->f = y != 0 ? x / y : 0; return 1;
+    case X_NEG: r->f = f_neg(x); return 1;
+    case X_ADD: r->f = f_add(x, y); return 1;
+    case X_SUB: r->f = f_sub(x, y); return 1;
+    case X_MUL: r->f = f_mul(x, y); return 1;
+    case X_DIV: r->f = f_iszero(y) ? 0 : f_div(x, y); return 1;
     default:
       r->isflt = 0;
-      a.v = flt_to_ival(x); b.v = flt_to_ival(y);
+      a.v = f_to_int(x); b.v = f_to_int(y);
       a.isflt = b.isflt = 0;
       break;
     }
@@ -415,7 +414,7 @@ int eval_const(expr *e, ival *v)
 {
   eres r;
   eval_expr(e, &r);
-  if (r.isflt) { *v = flt_to_ival(r.f); return r.defined; }
+  if (r.isflt) { *v = f_to_int(r.f); return r.defined; }
   *v = r.v;
   return r.defined && !r.bad && !r.sec && !r.ext;
 }
@@ -427,9 +426,9 @@ int expr_is_float(expr *e)
   return r.isflt;
 }
 
-double eres_float(eres *r)
+fval eres_float(eres *r)
 {
-  return r->isflt ? r->f : (double)r->v;
+  return r->isflt ? r->f : f_from_int(r->v);
 }
 
 /* Fold constant sub-trees (used to freeze SET values). */

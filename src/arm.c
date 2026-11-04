@@ -518,7 +518,8 @@ static int arm_create(const amn *m, int cond, const char *sfx, char **ops, int n
   int i;
   ip->m = m;
   ip->cond = cond;
-  snprintf(ip->sfx, sizeof ip->sfx, "%s", sfx);
+  for (i = 0; sfx[i] && i < (int)sizeof ip->sfx - 1; i++) ip->sfx[i] = sfx[i];
+  ip->sfx[i] = 0;
   for (i = 0; ip->sfx[i]; i++) ip->sfx[i] = (char)tolower((unsigned char)ip->sfx[i]);
   switch (m->type) {
   case T_DP: {
@@ -636,7 +637,7 @@ static int arm_create(const amn *m, int cond, const char *sfx, char **ops, int n
 static int ev(expr *e, eres *r)
 {
   eval_expr(e, r);
-  if (r->isflt) { r->v = flt_to_ival(r->f); r->isflt = 0; }
+  if (r->isflt) { r->v = f_to_int(r->f); r->isflt = 0; }
   return r->defined;
 }
 

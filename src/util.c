@@ -161,34 +161,6 @@ srcfile *load_source(const char *name, const char *path)
   return sf;
 }
 
-/* Floating-point values are IEEE doubles on every host, and float
- * arithmetic is done in double precision, as vasm does: so the output does
- * not depend on the host's long double.
- *
- * gf_frexp(): split a finite x into m * 2^e with 0.5 <= |m| < 1, without
- * libm.  Scaling by powers of two is exact. */
-double gf_frexp(double x, int *e)
-{
-  double m = x < 0 ? -x : x;
-  int n = 0;
-  *e = 0;
-  if (m == 0 || m != m || m - m != 0) return x;    /* zero, NaN, infinity */
-  while (m >= 18446744073709551616.0) { m /= 18446744073709551616.0; n += 64; }
-  while (m >= 1) { m /= 2; n++; }
-  while (m < 5.42101086242752217e-20) { m *= 18446744073709551616.0; n -= 64; }
-  while (m < 0.5) { m *= 2; n--; }
-  *e = n;
-  return x < 0 ? -m : m;
-}
-
-/* float -> integer the same way on every host (C leaves it undefined out of
- * range): truncate; NaN and values outside 64 bits give INT64_MIN */
-ival flt_to_ival(double f)
-{
-  if (f >= -9223372036854775808.0 && f < 9223372036854775808.0) return (ival)f;
-  return INT64_MIN;
-}
-
 /* ------------------------------------------------------- host paths */
 #if defined(_WIN32)
 #define HOST_DOS 1
@@ -215,6 +187,32 @@ int path_is_absolute(const char *p)
   return strchr(p, ':') != NULL;    /* "volume:dir/file"; a leading '/' is the parent */
 #else
   return p[0] == '/';
+#endif
+}
+
+/* Sources written on Unix or Windows name the parent directory "..".  On
+ * AmigaOS, MorphOS and AROS the parent is an empty part ("/x", "a//x"), so
+ * "." and ".." parts are rewritten; elsewhere the name is used as it is. */
+char *path_host(const char *p)
+{
+#if defined(HOST_AMIGA)
+  char *o = xmalloc(strlen(p) + 1), *q = o;
+  while (*p) {
+    if (p[0] == '.' && (p[1] == '/' || !p[1]) && (q == o || q[-1] == '/' || q[-1] == ':')) {
+      p += p[1] ? 2 : 1;                       /* "./" */
+    } else if (p[0] == '.' && p[1] == '.' && (p[2] == '/' || !p[2]) &&
+               (q == o || q[-1] == '/' || q[-1] == ':')) {
+      *q++ = '/';                              /* "../" -> "/" */
+      p += p[2] ? 3 : 2;
+    } else {
+      while (*p && *p != '/') *q++ = *p++;
+      if (*p) *q++ = *p++;
+    }
+  }
+  *q = 0;
+  return o;
+#else
+  return xstrdup(p);
 #endif
 }
 

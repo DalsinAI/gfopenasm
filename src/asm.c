@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <math.h>
 
 /* ------------------------------------------------------------ symbols */
 #define HSIZE 65536
@@ -176,49 +175,40 @@ void add_label_atom(symbol *s)
 }
 
 /* ------------------------------------------------------------ floats */
-void encode_float(int ftype, double f, uint8_t *o)
+void encode_float(int ftype, fval f, uint8_t *o)
 {
   int i;
   if (ftype == 's') {
-    float x = (float)f;
-    uint32_t u;
-    memcpy(&u, &x, 4);
+    uint32_t u = f_to_single(f);
     for (i = 0; i < 4; i++) o[i] = u >> (24 - 8 * i);
   } else if (ftype == 'd') {
-    double x = (double)f;
-    uint64_t u;
-    memcpy(&u, &x, 8);
-    for (i = 0; i < 8; i++) o[i] = u >> (56 - 8 * i);
+    for (i = 0; i < 8; i++) o[i] = f >> (56 - 8 * i);
   } else if (ftype == 'x') {
     /* the double's fields moved into the extended format: sign, exponent
      * rebiased from 1023 to 16383, the explicit integer bit set and the 52
      * fraction bits on top.  vasm does it this way for every value but
      * zero, so infinities, NaNs and denormals come out as it writes them. */
-    uint64_t u, mant;
+    uint64_t mant;
     int e;
-    memcpy(&u, &f, 8);
     memset(o, 0, 12);
-    if ((u & 0x7fffffffffffffffULL) == 0) {
+    if (f_iszero(f)) {
       e = 0; mant = 0;
     } else {
-      e = (int)((u >> 52) & 0x7ff) - 1023 + 16383;
-      mant = 0x8000000000000000ULL | ((u & 0xfffffffffffffULL) << 11);
+      e = (int)((f >> 52) & 0x7ff) - 1023 + 16383;
+      mant = 0x8000000000000000ULL | ((f & 0xfffffffffffffULL) << 11);
     }
-    o[0] = (uint8_t)((u >> 63) << 7) | ((e >> 8) & 0x7f);
+    o[0] = (uint8_t)((f >> 63) << 7) | ((e >> 8) & 0x7f);
     o[1] = e & 0xff;
     for (i = 0; i < 8; i++) o[4 + i] = mant >> (56 - 8 * i);
   } else if (ftype == 'p') {
-    /* packed decimal: 17 significant digits of the double value */
-    char buf[64], *q;
-    int ex, k, d = 0;
-    uint8_t dig[17];
+    /* packed decimal: the 17 significant digits of the double value */
+    int ex, k;
+    char dig[17];
     memset(o, 0, 12);
-    if (f == 0) return;
-    snprintf(buf, sizeof(buf), "%.16e", (double)f);
-    q = buf;
-    if (*q == '-') { o[0] |= 0x80; q++; }
-    for (; *q && *q != 'e'; q++) if (*q >= '0' && *q <= '9' && d < 17) dig[d++] = *q - '0';
-    ex = *q == 'e' ? atoi(q + 1) : 0;
+    if (f_iszero(f)) return;
+    if (f_sign(f)) o[0] |= 0x80;
+    if (f_isnan(f) || f_isinf(f)) return;
+    f_to_dec17(f, dig, &ex);
     if (ex < 0) { o[0] |= 0x40; ex = -ex; }
     o[0] |= (ex / 100) % 10;
     o[1] = (((ex / 10) % 10) << 4) | (ex % 10);
@@ -298,7 +288,7 @@ static void emit_data_value(section *s, bbuf *b, expr *e, int esize,
     bb_fill(b, 0, esize);
     return;
   }
-  if (r.isflt) { r.v = flt_to_ival(r.f); r.isflt = 0; }
+  if (r.isflt) { r.v = f_to_int(r.f); r.isflt = 0; }
   if (r.bad && e->op == X_SUB && !reldiff) {
     /* sym - <label in this section>: pc-relative data */
     eres la, rb;
@@ -588,7 +578,7 @@ int ignore_mult_inc;
 void add_incpath(const char *p)
 {
   incpaths = xrealloc(incpaths, (nincpaths + 1) * sizeof(char *));
-  incpaths[nincpaths++] = xstrdup(p);
+  incpaths[nincpaths++] = path_host(p);
 }
 
 static int file_exists(const char *p)
@@ -607,11 +597,10 @@ static char *join_path(const char *dir, const char *name)
   return strprintf("%s/%s", dir, name);
 }
 
-char *find_include(const char *name, int bin)
+static char *find_include_(const char *name)
 {
   int i;
   char *p;
-  (void)bin;
   if (path_is_absolute(name)) return file_exists(name) ? xstrdup(name) : NULL;
   /* 1. compile directory, 2. current directory */
   if (compile_dir && *compile_dir) {
@@ -633,6 +622,14 @@ char *find_include(const char *name, int bin)
     }
   }
   return NULL;
+}
+
+char *find_include(const char *name, int bin)
+{
+  char *h = path_host(name), *r = find_include_(h);
+  (void)bin;
+  free(h);
+  return r;
 }
 
 /* ------------------------------------------------------------ macros */

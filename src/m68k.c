@@ -9,9 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <math.h>
 
-void encode_float(int ftype, double f, uint8_t *o);
+void encode_float(int ftype, fval f, uint8_t *o);
 
 /* ------------------------------------------------------------ cpu set */
 #define C000  0x0001
@@ -744,7 +743,7 @@ static void eval_op(ictx *c, expr *e, eres *r)
   (void)c;
   if (!e) { memset(r, 0, sizeof(*r)); r->defined = 1; return; }
   eval_expr(e, r);
-  if (r->isflt) { r->v = flt_to_ival(r->f); }
+  if (r->isflt) { r->v = f_to_int(r->f); }
 }
 
 /* emit a value of 'bytes' (1 -> low byte of a word, 2, 4) at the
@@ -965,7 +964,7 @@ static void emit_imm(ictx *c, expr *e, int isz)
         memset(buf, 0, sizeof(buf));
         for (i = 0; i < 8 && i < n; i++) buf[n - 1 - i] = (uint8_t)(u >> (8 * i));
       } else
-        encode_float(isz, r.isflt ? r.f : (double)r.v, buf);
+        encode_float(isz, r.isflt ? r.f : f_from_int(r.v), buf);
       for (i = 0; i < n; i += 2) bb_be16(c->out, (buf[i] << 8) | buf[i + 1]);
     }
     c->len += n;
@@ -2358,7 +2357,7 @@ static void fpu_check(ictx *c)
 static int fconst_size_(ictx *c, operand *o, int s, int intw)
 {
   eres r;
-  double f;
+  fval f;
   if (!is_imm(o)) return s;
   eval_expr(o->bd, &r);
   if (!is_abs(&r) || !r.defined) return s;
@@ -2371,31 +2370,29 @@ static int fconst_size_(ictx *c, operand *o, int s, int intw)
   if (!OPT(c) || !opt_fconst) return s;
   if (!s || s == 'p' || s == 'l' || s == 'w' || s == 'b') return s;
   f = r.f;
-  if (intw && f >= -32768 && f <= 32767 && f == (double)(int32_t)f && !(f == 0 && signbit(f))) {
+  if (intw && f_is_int_in(f, -32768, 32767)) {
     /* a whole number that fits in a word: vasm loads it as an integer word */
-    o->bd = new_num((ival)f);
+    o->bd = new_num(f_to_int(f));
     return 'w';
   }
-  if (f - f == 0 && (double)(float)f == f) return 's';
+  if (!f_isinf(f) && f_is_single(f)) return 's';
   return s == 's' ? 's' : 'd';
 }
 static int fconst_size(ictx *c, operand *o, int s) { return fconst_size_(c, o, s, 1); }
 
 /* fdiv #2^n -> fmul #2^-n (opt-fconst) */
-static int fdiv_pow2(ictx *c, operand *o, int opmode, double *recip)
+static int fdiv_pow2(ictx *c, operand *o, int opmode, fval *recip)
 {
   eres r;
-  double f;
-  int e;
+  fval f;
   if (!is_imm(o) || !OPT(c) || !opt_fconst || o->rawhex) return opmode;
   if (c->ip->size != 's' && c->ip->size != 'd' && c->ip->size != 'x' && !expr_is_float(o->bd)) return opmode;
   if (opmode != 0x20 && opmode != 0x24 && opmode != 0x60 && opmode != 0x64) return opmode;
   eval_expr(o->bd, &r);
   if (!is_abs(&r) || !r.defined) return opmode;
-  f = r.isflt ? r.f : (double)r.v;
-  if (f == 0) return opmode;
-  if (gf_frexp(f < 0 ? -f : f, &e) != 0.5) return opmode;
-  *recip = 1.0 / f;
+  f = r.isflt ? r.f : f_from_int(r.v);
+  if (f_iszero(f) || !f_is_pow2(f)) return opmode;
+  *recip = f_div(0x3ff0000000000000ULL, f);   /* 1.0 / f */
   return opmode + 3;
 }
 
@@ -2433,7 +2430,7 @@ static int h_fgen(ictx *c)
     return 1;
   }
   {
-    double recip;
+    fval recip;
     int om2 = fdiv_pow2(c, src, opmode, &recip);
     if (om2 != opmode) {
       expr *save = src->bd;

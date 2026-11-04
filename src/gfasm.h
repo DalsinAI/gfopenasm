@@ -17,7 +17,28 @@
 
 typedef int64_t ival;
 typedef uint64_t uval;
-ival flt_to_ival(double f);         /* the same result on every host */
+/* float constants: IEEE doubles kept as their bits and computed in software
+ * (src/float.c), so that the output is the same on every host */
+typedef uint64_t fval;
+int  f_isnan(fval a);
+int  f_isinf(fval a);
+int  f_iszero(fval a);
+int  f_sign(fval a);
+int  f_eq(fval a, fval b);
+fval f_neg(fval a);
+fval f_add(fval a, fval b);
+fval f_sub(fval a, fval b);
+fval f_mul(fval a, fval b);
+fval f_div(fval a, fval b);
+fval f_from_int(ival v);
+ival f_to_int(fval a);                 /* truncates; INT64_MIN out of range */
+uint32_t f_to_single(fval a);
+fval f_from_single(uint32_t s);
+int  f_is_single(fval a);
+int  f_is_int_in(fval a, ival lo, ival hi);
+int  f_is_pow2(fval a);
+fval f_from_dec(const char *s, const char **end);
+void f_to_dec17(fval a, char *dig, int *exp10);
 
 /* ---------------------------------------------------------------- util */
 void *xmalloc(size_t n);
@@ -31,10 +52,10 @@ char *strprintf(const char *fmt, ...);
 
 /* host file names: '/' everywhere, also '\\' and "C:" on Windows, and
  * "volume:" with '/' for the parent directory on AmigaOS, MorphOS and AROS */
-double gf_frexp(double x, int *e);   /* frexp() without libm */
 int  path_is_sep(int c);
 int  path_is_absolute(const char *p);
 const char *path_base(const char *p);
+char *path_host(const char *p);      /* "../x" as the host writes it */
 
 typedef struct bbuf { uint8_t *d; size_t n, cap; } bbuf;
 void bb_put(bbuf *b, const void *p, size_t n);
@@ -83,7 +104,7 @@ typedef struct expr {
   int op;
   struct expr *l, *r;
   ival v;
-  double f;
+  fval f;
   struct symbol *sym;
 } expr;
 
@@ -97,11 +118,11 @@ typedef struct eres {
   int defined;      /* all symbols known */
   int bad;          /* illegal relocation */
   int isflt;
-  double f;
+  fval f;
 } eres;
 
 expr *new_num(ival v);
-expr *new_flt(double f);
+expr *new_flt(fval f);
 expr *new_sym(struct symbol *s);
 expr *new_op(int op, expr *l, expr *r);
 expr *copy_expr(expr *e);
@@ -110,7 +131,7 @@ expr *parse_expr(const char **pp);
 int  eval_expr(expr *e, eres *r);
 int  eval_const(expr *e, ival *v);      /* 1 if absolute & defined */
 int  expr_is_float(expr *e);
-double eres_float(eres *r);
+fval eres_float(eres *r);
 expr *simplify_expr(expr *e);
 
 /* hooks from syntax module for expression parsing */
