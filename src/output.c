@@ -445,6 +445,7 @@ static int cmp_secaddr(const void *a, const void *b)
   return x->idx - y->idx;
 }
 
+int opt_cbm_prg, opt_apple_bin;
 static int bin_write(FILE *f, const char *outname)
 {
   int i, n = 0;
@@ -465,6 +466,13 @@ static int bin_write(FILE *f, const char *outname)
   }
   if (errcount) return 0;
   qsort(v, n, sizeof(*v), cmp_secaddr);
+  if (n && (opt_cbm_prg || opt_apple_bin)) {
+    /* load address (and length) header, little-endian */
+    ival st = (v[0]->flags & SEC_ABS) ? v[0]->org : 0;
+    ival en = ((v[n - 1]->flags & SEC_ABS) ? v[n - 1]->org : 0) + v[n - 1]->size;
+    fputc((int)(st & 255), f); fputc((int)((st >> 8) & 255), f);
+    if (opt_apple_bin) { fputc((int)((en - st) & 255), f); fputc((int)(((en - st) >> 8) & 255), f); }
+  }
   for (i = 0; i < n; i++) {
     ival start = (v[i]->flags & SEC_ABS) ? v[i]->org : 0;
     if (i > 0) {

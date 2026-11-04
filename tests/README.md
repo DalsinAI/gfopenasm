@@ -63,10 +63,18 @@ Z80 / oldstyle: `gen/gen_z80.py` generates `z80_insn0.s` (oracle-filtered);
 
     GFASM=$PWD/vasmz80_oldstyle VASM=$ORACLES/vasmz80_oldstyle sh tests/realworld.sh tests/realworld-z80.list
 
+6502: `gen/gen_6502.py` generates `m6502_insn0.s` (NMOS) and `m6502_wdc0.s`
+(`-wdc02`), oracle-filtered; `o_6502_dirs.s` covers oldstyle features and
+`-cbm-prg`.
+
+    GFASM=$PWD/vasm6502_oldstyle VASM=$ORACLES/vasm6502_oldstyle sh tests/realworld.sh tests/realworld-6502.list
+
 ## Results (2026-11-04, vasm 2.0f oracle)
 
 | Set | Result |
 |---|---|
+| 6502 committed corpus | 3/3 files match (about 1,200 instruction lines for 6502 and WDC 65C02, plus a directive/PRG test) |
+| 6502 real-world (13 public repos: Ben Eater style, GameTank, X16 tests, SMON, BeebEater, blake3, Primes...) | 63/63 match |
 | Z80 committed corpus | 2/2 files match (about 1,600 instruction lines incl. undocumented forms, plus an oldstyle directive test) |
 | Z80 real-world (13 public repos: ChibiAkumas GrimeZ80, MSX, CPC, TRS-80, Z180 BIOS, ZOS, MECB, arcade sound diag...) | 88/88 match |
 | x86 committed corpus | 8/8 files match (about 7,600 instruction lines: integer, system, x87, MMX, SSE/SSE2, jumps; plus ELF, bin, `.code16` and macro tests) |

@@ -309,7 +309,7 @@ typedef struct cpu_module {
   void (*parse_done)(void);    /* after the source was read */
   void (*post_layout)(void);   /* after the final pass, before output */
 } cpu_module;
-extern cpu_module cpu_ppc, cpu_arm, cpu_x86, cpu_z80;
+extern cpu_module cpu_ppc, cpu_arm, cpu_x86, cpu_z80, cpu_6502;
 
 typedef struct syntax_module {
   const char *name;

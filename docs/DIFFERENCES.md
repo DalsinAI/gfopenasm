@@ -193,3 +193,28 @@ copies them so that the bytes match:
 - The `-8080`, `-gbz80`, `-hd64180`, `-intel-syntax` and Rabbit (`-rcm*`)
   modes are rejected.
 - Output formats `ihex`, `srec` and `vobj`. Use `-Fbin`.
+
+## 6502 (phase 6) vasm behaviours copied
+
+`vasm6502_oldstyle` 2.0f:
+
+- Absolute operands become zero page when the value is known to fit
+  (also for forward references); `<` forces zero page, `>`, `!` and `|`
+  force absolute. In branches `!` is the logical-not operator.
+- `blt` and `bge` are accepted as `bcc` and `bcs`.
+- `rmb` is the WDC instruction, not the `blk` directive.
+- oldstyle: `fill count,value` takes a fill value; anonymous labels `:` with
+  `:+`/`:-`; a label on an `if`/`else`/`endif` line is defined; `.if(expr)`;
+  `label :`; `*=` may be indented; `dsect`/`dend` are supported; a character
+  constant with a backslash followed by any character is a backslash
+  when escapes are off; `-esc` turns escapes on.
+- bin output: `-cbm-prg` and `-apple-bin` headers.
+
+## 6502 not implemented yet
+
+- `-illegal`, `-dtv`, `-ce02`, `-6280` and `-mega65` are rejected;
+  `-opt-branch` is accepted but does not rewrite branches; `ezp`, `zpage`,
+  `setdp` and `zero` are missing.
+- The main file of nickgammon/G-Pascal (`gpascal.asm`) still differs from
+  the oracle; its other sources match.
+- `-atari-com`, `-coco-ml`, `-dragon-bin` and `-oric-mc` headers.
