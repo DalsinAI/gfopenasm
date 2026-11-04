@@ -13,7 +13,7 @@ on a test corpus (see CLEAN-ROOM.md).
 | 3 | ARM (A32/Thumb, ARMv2–v4T, as in vasm) | `vasmarm_std` | ELF, bin | done (corpus + real-world pass) | Archimedes/GBA/NDS sources; Raspberry Pi bring-up stubs |
 | 4 | x86 (i386–PentiumPro, x87, MMX, SSE/SSE2; x86-64 still to do) | `vasmx86_std` | ELF, bin | done for 32/16-bit (corpus + real-world pass) | host-side helper code |
 | 5 | Z80 (8080/GBZ80/Rabbit variants still to do) | `vasmz80_oldstyle` | bin (ihex, srec to do) | done for Z80 (corpus + real-world pass) | small ISA, needs the `oldstyle` syntax module |
-| 6 | 6502 (plus 65C02/65816 options) | `vasm6502_oldstyle` | bin (+ C64 PRG/Atari COM headers) | ~1 agent-day | reuses `oldstyle` from phase 5 |
+| 6 | 6502 + 65C02/WDC (illegal/DTV/CE02/6280/MEGA65 still to do) | `vasm6502_oldstyle` | bin (+ C64 PRG, Apple headers) | done (corpus + real-world pass) | reuses `oldstyle` from phase 5 |
 
 Shared work that the phases pick up along the way:
 

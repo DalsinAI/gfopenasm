@@ -26,6 +26,7 @@ static int select_cpu(const char *n)
   if (!strcmp(n, "arm")) { cpu = &cpu_arm; return 1; }
   if (!strcmp(n, "x86")) { cpu = &cpu_x86; return 1; }
   if (!strcmp(n, "z80")) { cpu = &cpu_z80; return 1; }
+  if (!strcmp(n, "6502")) { cpu = &cpu_6502; return 1; }
   return 0;
 }
 static int select_syntax(const char *n)
@@ -40,7 +41,7 @@ static void usage(void)
 {
   fprintf(stderr,
     "gfasm " GFASM_VERSION " - clean-room vasm-compatible assembler (MIT)\n"
-    "usage: gfasm [-cpu=68k|ppc|arm|x86|z80] [-syntax=mot|std|oldstyle] [options] file\n"
+    "usage: gfasm [-cpu=68k|ppc|arm|x86|z80|6502] [-syntax=mot|std|oldstyle] [options] file\n"
     "  -F<fmt>  output format: hunk, hunkexe, elf, bin\n"
     "  -o file  output file (default a.out)\n"
     "  -I path  include path     -D name[=val] define symbol\n"
@@ -186,6 +187,8 @@ int main(int argc, char **argv)
     if (!strncmp(a, "-hunkpad=", 9)) { opt_hunkpad = (int)numarg(a + 9); continue; }
     if (!strcmp(a, "-linedebug")) continue;
     if (!strcmp(a, "-databss")) { opt_databss = 1; continue; }
+    if (!strcmp(a, "-cbm-prg")) { extern int opt_cbm_prg; opt_cbm_prg = 1; continue; }
+    if (!strcmp(a, "-apple-bin")) { extern int opt_apple_bin; opt_apple_bin = 1; continue; }
     if (!strncmp(a, "-exec=", 6)) continue;
     if (cpu->option(a)) continue;
     if (!strcmp(a, "-h") || !strcmp(a, "-help") || !strcmp(a, "--help")) { usage(); return 0; }

@@ -1,0 +1,64 @@
+# 6502 (vasm6502_oldstyle): GFASM=$PWD/vasm6502_oldstyle VASM=$ORACLES/vasm6502_oldstyle sh tests/realworld.sh tests/realworld-6502.list
+-Fbin -dotdir -wdc02 | @RW@/PlummersSoftwareLLC_Primes/Prime6502Assembly/solution_3/primes.s
+-Fbin -dotdir | @RW@/caseywdunn_eater_6502/blink.s
+-Fbin -dotdir | @RW@/caseywdunn_eater_6502/exploration/hello-world_post_vid08.s
+-Fbin -dotdir | @RW@/caseywdunn_eater_6502/hello-world_vid04.s
+-Fbin -dotdir | @RW@/caseywdunn_eater_6502/hello-world_vid05.s
+-Fbin -dotdir | @RW@/caseywdunn_eater_6502/hello-world_vid07.s
+-Fbin -dotdir | @RW@/caseywdunn_eater_6502/hello-world_vid09.s
+-Fbin -dotdir | @RW@/caseywdunn_eater_6502/vid10_42.s
+-Fbin -dotdir | @RW@/caseywdunn_eater_6502/vid10_bin2dec.s
+-Fbin -dotdir | @RW@/caseywdunn_eater_6502/vid11_interrupt.s
+-Fbin -dotdir | @RW@/caseywdunn_eater_6502/vid12_interrupt.s
+-Fbin -dotdir -wdc02 | @RW@/chelsea6502_BeebEater/BeebEater.asm
+-Fbin -dotdir -wdc02 | @RW@/clydeshaffer_CubicleKnight/acp/acp_dynawave_nosine.asm
+-Fbin -dotdir -wdc02 | @RW@/clydeshaffer_GameTankEmulator/asm/Audio2/acp_dynawave.asm
+-Fbin -dotdir -wdc02 | @RW@/clydeshaffer_GameTankEmulator/asm/Audio2/acp_melodic.asm
+-Fbin -dotdir | @RW@/clydeshaffer_GameTankEmulator/asm/Audio2/acp_saw_test.asm
+-Fbin -dotdir | @RW@/clydeshaffer_GameTankEmulator/asm/Audio2/acp_sine_test.asm
+-Fbin -dotdir -wdc02 | @RW@/clydeshaffer_GameTankEmulator/asm/Audio2/acp_square_test.asm
+-Fbin -dotdir -wdc02 | @RW@/clydeshaffer_GameTankEmulator/asm/Audio2/player.asm
+-Fbin -dotdir -wdc02 | @RW@/clydeshaffer_GameTankEmulator/asm/BadApple/badapple.asm
+-Fbin -dotdir -wdc02 | @RW@/clydeshaffer_GameTankEmulator/asm/BlitterTest/blittest.asm
+-Fbin -dotdir -wdc02 | @RW@/clydeshaffer_GameTankEmulator/asm/SoundTest/soundtest.asm
+-Fbin -dotdir -wdc02 | @RW@/clydeshaffer_GameTankEmulator/asm/Tutorial/00_draw_a_pixel.asm
+-Fbin -dotdir -wdc02 | @RW@/clydeshaffer_GameTankEmulator/asm/Tutorial/01_draw_colored_box.asm
+-Fbin -dotdir -wdc02 | @RW@/clydeshaffer_GameTankEmulator/asm/Tutorial/02_draw_sprites.asm
+-Fbin -dotdir -wdc02 | @RW@/clydeshaffer_GameTankEmulator/asm/Tutorial/03_game_loop.asm
+-Fbin -dotdir -wdc02 | @RW@/clydeshaffer_GameTankEmulator/asm/Tutorial/04_gamepad_input.asm
+-Fbin -dotdir -wdc02 | @RW@/clydeshaffer_GameTankEmulator/asm/Tutorial/05_audio.asm
+-Fbin -dotdir | @RW@/clydeshaffer_GameTankEmulator/asm/Tutorial/06_rom_page_A.asm
+-Fbin -dotdir | @RW@/clydeshaffer_GameTankEmulator/asm/Tutorial/06_rom_page_B.asm
+-Fbin -dotdir -wdc02 | @RW@/clydeshaffer_GameTankEmulator/asm/Tutorial/06_rom_pages.asm
+-Fbin -dotdir | @RW@/clydeshaffer_GameTankEmulator/asm/Tutorial/assets/square.asm
+-Fbin -dotdir | @RW@/clydeshaffer_GameTankEmulator/asm/Tutorial/blank_template.asm
+-Fbin -dotdir | @RW@/dhansel_smon6502/basic.asm
+-Fbin -dotdir | @RW@/dhansel_smon6502/smon.asm
+-Fbin | @RW@/dhansel_smon6502/uart_6850.asm
+-Fbin -dotdir | @RW@/dimitrit_waduzitdo/ewaduzitdo.a65
+-Fbin -dotdir | @RW@/dimitrit_waduzitdo/waduzitdo.a65
+-Fbin | @RW@/litwr2_6502-sorting/checkinsertion.asm
+-Fbin | @RW@/litwr2_6502-sorting/checkquick.asm
+-Fbin | @RW@/litwr2_6502-sorting/checkradix8.asm
+-Fbin | @RW@/litwr2_6502-sorting/checkselection.asm
+-Fbin | @RW@/litwr2_6502-sorting/checkshell.asm
+-Fbin | @RW@/litwr2_6502-sorting/strings/checkquick-strings-bbc.asm
+-Fbin | @RW@/litwr2_6502-sorting/strings/checkquick-strings-c64.asm
+-Fbin | @RW@/litwr2_6502-sorting/strings/checkquick-strings-plus4.asm
+-Fbin | @RW@/mytechnotalent_C-64-Assembly/SrcC64/C64_V1_ChibiSound.asm
+-Fbin -cbm-prg | @RW@/mytechnotalent_C-64-Assembly/SrcC64/V1_Header.asm
+-Fbin -dotdir -wdc02 | @RW@/nickgammon_G-Pascal/examples/asm/assembler_opcode_test.asm
+-Fbin | @RW@/nickgammon_G-Pascal/src/cp437_font.inc
+-Fbin -dotdir | @RW@/oconnor663_blake3-6502/rom.s
+-Fbin -dotdir -wdc02 | @RW@/rweather_stackable-6502-computer/src/music/happy_birthday.s
+-Fbin -dotdir -wdc02 | @RW@/rweather_stackable-6502-computer/src/music/merry_christmas.s
+-Fbin -dotdir | @RW@/rweather_stackable-6502-computer/src/music/notes.s
+-Fbin -dotdir | @RW@/rweather_stackable-6502-computer/src/selftest/selftest.s
+-Fbin -dotdir | @RW@/visual-trials_X16-Hardware-Tests/special_tests/LA_test_bank_load.s
+-Fbin -dotdir | @RW@/visual-trials_X16-Hardware-Tests/special_tests/LA_test_ram.s
+-Fbin -dotdir | @RW@/visual-trials_X16-Hardware-Tests/special_tests/finch_rom_only.s
+-Fbin -dotdir | @RW@/visual-trials_X16-Hardware-Tests/special_tests/init_vera.s
+-Fbin -dotdir | @RW@/visual-trials_X16-Hardware-Tests/special_tests/test_psg_sound.s
+-Fbin -dotdir -wdc02 | @RW@/visual-trials_X16-Hardware-Tests/utils/i2c.s
+-Fbin -dotdir | @RW@/visual-trials_X16-Hardware-Tests/utils/petscii.s
+-Fbin -dotdir -wdc02 | @RW@/visual-trials_X16-Hardware-Tests/x16_hardware_tester.s

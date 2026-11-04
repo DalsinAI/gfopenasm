@@ -7,7 +7,8 @@
 #include <ctype.h>
 
 extern int opt_esc, ident_dots;
-extern cpu_module cpu_z80;
+extern cpu_module cpu_z80, cpu_6502;
+static int os_esc;
 static int opt_dotdir, opt_autoexp, opt_ast, opt_noc, opt_noi, opt_sect, opt_ldots;
 static char pcchar = '*';
 static char *last_global;
@@ -28,11 +29,30 @@ static expr *os_ident(const char *n, size_t len);
 
 static int digval(int c) { c = tolower(c); return isdigit(c) ? c - '0' : c >= 'a' && c <= 'z' ? c - 'a' + 10 : 99; }
 
+static int anon_count;
+static section *dsect_cur, *dsect_saved;
+static int dsect_active;
 static int os_number(const char **pp, expr **out)
 {
   const char *p = *pp, *s;
   uval v = 0;
   int base = 0;
+  if (*p == ':' && (p[1] == '+' || p[1] == '-')) {
+    /* anonymous label reference :+ :++ :- :-- */
+    char c = p[1];
+    int k = 0;
+    char *nm;
+    symbol *y;
+    p++;
+    while (*p == c) { k++; p++; }
+    nm = strprintf("\x1c%d", c == '+' ? anon_count + k : anon_count - k + 1);
+    y = sym_get(nm);
+    free(nm);
+    y->flags |= SF_REFD | SF_LOCAL;
+    *out = new_sym(y);
+    *pp = p;
+    return 1;
+  }
   if (*p == '$' && isxdigit((unsigned char)p[1])) { base = 16; p++; }
   else if (*p == '%' && (p[1] == '0' || p[1] == '1')) { base = 2; p++; }
   else if (*p == '@' && isdigit((unsigned char)p[1])) { base = is_z80() ? 2 : 8; p++; }
@@ -501,13 +521,13 @@ static int directive(const char *d, const char *rest, char **ops, int nops, cons
     data(ops + 1, nops - 1, 1, 1, -1, 0, pexpr(ops[0]));
     return 1;
   }
-  if (IS("blk") || IS("bsz") || IS("dc") || IS("defs") || IS("ds") || IS("dsb") || IS("zmb") || IS("rmb")) {
+  if (IS("blk") || IS("bsz") || IS("dc") || IS("defs") || IS("ds") || IS("dsb") || IS("zmb") || (IS("rmb") && cpu != &cpu_6502)) {
     if (nops < 1) { error("missing operand"); return 1; }
     space(ops[0], nops > 1 ? ops[1] : NULL, 1);
     return 1;
   }
   if (IS("blkw") || IS("dsw")) { if (nops < 1) return 1; space(ops[0], nops > 1 ? ops[1] : NULL, 2); return 1; }
-  if (IS("fill") || IS("reserve") || IS("spc")) { if (nops < 1) return 1; space(ops[0], "0", 1); return 1; }
+  if (IS("fill") || IS("reserve") || IS("spc")) { if (nops < 1) return 1; space(ops[0], nops > 1 ? ops[1] : "0", 1); return 1; }
   if (IS("byt")) { space("1", "0", 1); return 1; }
   if (IS("wrd")) { space("1", "0", 2); return 1; }
   if (IS("align")) { if (nops < 1 || !cexpr(ops[0], &v)) return 1; align_to((ival)1 << v); return 1; }
@@ -516,6 +536,13 @@ static int directive(const char *d, const char *rest, char **ops, int nops, cons
     const char *p = skip_ws(rest);
     if (*p == '#') p++;
     if (!cexpr(p, &v)) return 1;
+    if (cursec && (cursec->flags & SEC_OFFSET)) {
+      section *s = new_section("dsect", ST_BSS, 0);
+      s->flags = SEC_OFFSET;
+      s->org = v;
+      cursec = dsect_cur = s;
+      return 1;
+    }
     if (cursec && (cursec->flags & SEC_ABS) && v >= cursec->org) {
       /* oracle: org inside an absolute section pads up to the new address */
       atom *a = add_atom(AT_RORG);
@@ -523,6 +550,21 @@ static int directive(const char *d, const char *rest, char **ops, int nops, cons
       return 1;
     }
     cursec = new_org_section(v);
+    return 1;
+  }
+  if (IS("dsect")) {
+    if (dsect_active) { error("dsect already active"); return 1; }
+    dsect_active = 1;
+    dsect_saved = cursec;
+    if (!dsect_cur) { dsect_cur = new_section("dsect", ST_BSS, 0); dsect_cur->flags = SEC_OFFSET; }
+    cursec = dsect_cur;
+    return 1;
+  }
+  if (IS("dend")) {
+    if (!dsect_active) { error("dend without dsect"); return 1; }
+    dsect_cur = cursec;
+    cursec = dsect_saved;
+    dsect_active = 0;
     return 1;
   }
   if (IS("roffs")) { atom *a = add_atom(AT_RORG); a->u.rorg.target = pexpr(rest); return 1; }
@@ -661,10 +703,25 @@ static void statement(const char *w0, const char *lab, size_t ll, int *labdone)
   }
   dn = (l == 1 && *w == '=') ? "=" : dirname_of(w, l, d, sizeof d);
   /* conditionals (also while skipping) */
+  if (dn && !is_cond(dn) && memchr(w, '(', l)) {
+    /* ".if(expr)" */
+    const char *lp = memchr(w, '(', l);
+    char d2[32];
+    const char *dn2 = dirname_of(w, lp - w, d2, sizeof d2);
+    if (dn2 && is_cond(dn2)) { strcpy(d, d2); dn = d; p = lp; l = lp - w; }
+  }
   if (dn) {
-    if (is_cond(dn)) { if (cond_active()) cond_push(cond_value(dn, skip_ws(p))); else cond_push(0); *labdone = 1; return; }
-    if (!stricmp_(dn, "else") || !stricmp_(dn, "el")) { cond_else(); *labdone = 1; return; }
-    if (!stricmp_(dn, "endif") || !stricmp_(dn, "fi") || (!stricmp_(dn, "ei") && !is_z80())) { cond_end(); *labdone = 1; return; }
+    if (is_cond(dn)) {
+      if (lab && !*labdone && cond_active()) define_label(lab, ll);   /* oracle: label on an if line */
+      if (cond_active()) cond_push(cond_value(dn, skip_ws(p))); else cond_push(0);
+      *labdone = 1; return;
+    }
+    if (!stricmp_(dn, "else") || !stricmp_(dn, "el") || !stricmp_(dn, "endif") || !stricmp_(dn, "fi") ||
+        (!stricmp_(dn, "ei") && !is_z80())) {
+      if (lab && !*labdone && cond_active()) define_label(lab, ll);
+      if (tolower((unsigned char)dn[1]) == 'l') cond_else(); else cond_end();
+      *labdone = 1; return;
+    }
   }
   if (!cond_active()) { *labdone = 1; return; }
   p = skip_ws(p);
@@ -709,19 +766,31 @@ static void os_parse_line(const char *raw)
   if (defmacro || collecting) { collect(raw); return; }
   line = strip_comment(raw);
   p = line;
-  if (*p == pcchar && skip_ws(p + 1)[0] == '=') {
+  if (*skip_ws(p) == pcchar && skip_ws(skip_ws(p) + 1)[0] == '=') {
     /* *=expr sets the origin */
     ival v;
+    p = skip_ws(p);
     if (cond_active() && cexpr(skip_ws(p + 1) + 1, &v)) cursec = new_org_section(v);
     free(line);
     return;
   }
-  if (*p && !is_ws(*p)) {
+  if (*p == ':' && (!p[1] || is_ws(p[1]))) {
+    /* anonymous label */
+    if (cond_active()) {
+      char *nm = strprintf("\x1c%d", ++anon_count);
+      symbol *y = sym_get(nm);
+      free(nm);
+      y->flags |= SF_LOCAL;
+      add_label_atom(y);
+    }
+    p++;
+  } else if (*p && !is_ws(*p)) {
     const char *q = p;
     while (is_labchar((unsigned char)*q)) q++;
     if (q > p) { lab = p; ll = q - p; }
     p = q;
     if (*p == ':') p++;
+    else if (lab && *skip_ws(p) == ':' && is_ws(skip_ws(p)[1] ? skip_ws(p)[1] : ' ')) p = skip_ws(p) + 1;   /* "label :" */
   }
   /* statements, separated by ':' on the Z80 */
   for (;;) {
@@ -770,7 +839,7 @@ static void os_init(void)
   syntax_ident = os_ident;
   syntax_pcexpr = os_pc;
   if (is_z80()) pcchar = '$';
-  opt_esc = 0;     /* oracle: no escape sequences by default */
+  opt_esc = os_esc;     /* oracle: no escape sequences by default (-esc) */
   { extern int char_bs_pair; char_bs_pair = 1; }
   ident_dots = 1;
   { extern const char *default_sec_name; default_sec_name = ".text"; }
@@ -799,7 +868,8 @@ static int os_option(const char *o)
   if (!strcmp(o, "-noi")) { opt_noi = 1; return 1; }
   if (!strcmp(o, "-sect")) { opt_sect = 1; return 1; }
   if (!strcmp(o, "-i")) return 1;
-  if (!strcmp(o, "-noesc")) { opt_esc = 0; return 1; }
+  if (!strcmp(o, "-noesc")) { os_esc = 0; return 1; }
+  if (!strcmp(o, "-esc")) { os_esc = 1; return 1; }
   return 0;
 }
 

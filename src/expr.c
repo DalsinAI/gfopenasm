@@ -82,7 +82,7 @@ static int parse_charconst(const char **pp, ival *v)
       p++;
       break;
     }
-    if (c == '\\' && !opt_esc && char_bs_pair && p[1] == '\\') {
+    if (c == '\\' && !opt_esc && char_bs_pair && p[1] && p[1] != q) {
       /* oldstyle: "\\" is one backslash even without escapes (oracle) */
       p += 2; val = (val << 8) | '\\'; n++; continue;
     }
