@@ -309,7 +309,7 @@ typedef struct cpu_module {
   void (*parse_done)(void);    /* after the source was read */
   void (*post_layout)(void);   /* after the final pass, before output */
 } cpu_module;
-extern cpu_module cpu_ppc, cpu_arm, cpu_x86;
+extern cpu_module cpu_ppc, cpu_arm, cpu_x86, cpu_z80;
 
 typedef struct syntax_module {
   const char *name;
@@ -319,7 +319,7 @@ typedef struct syntax_module {
   int  (*option)(const char *opt);
 } syntax_module;
 extern syntax_module *syntax;
-extern syntax_module syntax_mot, syntax_std;
+extern syntax_module syntax_mot, syntax_std, syntax_oldstyle;
 extern cpu_module *cpu;
 extern cpu_module cpu_m68k;
 

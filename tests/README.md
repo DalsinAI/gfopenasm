@@ -58,10 +58,17 @@ writes the `x_*` directive/ELF/bin/16-bit tests.
 
     GFASM=$PWD/vasmx86_std VASM=$ORACLES/vasmx86_std sh tests/realworld.sh tests/realworld-x86.list
 
+Z80 / oldstyle: `gen/gen_z80.py` generates `z80_insn0.s` (oracle-filtered);
+`o_z80_dirs.s` covers the oldstyle directives.
+
+    GFASM=$PWD/vasmz80_oldstyle VASM=$ORACLES/vasmz80_oldstyle sh tests/realworld.sh tests/realworld-z80.list
+
 ## Results (2026-11-04, vasm 2.0f oracle)
 
 | Set | Result |
 |---|---|
+| Z80 committed corpus | 2/2 files match (about 1,600 instruction lines incl. undocumented forms, plus an oldstyle directive test) |
+| Z80 real-world (13 public repos: ChibiAkumas GrimeZ80, MSX, CPC, TRS-80, Z180 BIOS, ZOS, MECB, arcade sound diag...) | 88/88 match |
 | x86 committed corpus | 8/8 files match (about 7,600 instruction lines: integer, system, x87, MMX, SSE/SSE2, jumps; plus ELF, bin, `.code16` and macro tests) |
 | x86 real-world (robfinch rf80386: vbcc-generated i386 code and hand-written CPU test macros) | 17/17 match |
 | ARM committed corpus | 10/10 files match (about 2,300 ARM lines with all condition codes and suffixes, 340 THUMB lines, literal pools, plus ELF/bin/big-endian/THUMB directive tests) |

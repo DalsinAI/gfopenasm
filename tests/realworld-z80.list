@@ -1,0 +1,89 @@
+# Z80 (vasmz80_oldstyle): GFASM=$PWD/vasmz80_oldstyle VASM=$ORACLES/vasmz80_oldstyle sh tests/realworld.sh tests/realworld-z80.list
+-Fbin -dotdir | @RW@/QSmally_ZOS/io.s
+-Fbin | @RW@/QSmally_ZOS/stdlib.s
+-Fbin -dotdir | @RW@/QSmally_ZOS/zos.s
+-Fbin | @RW@/akuyou_GrimeZ80/Sources/Lesson_A2.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcALL/LZ48_decrunch.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcALL/Multiplatform_StringFunctions.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcALL/Multiplatform_StringFunctionsB.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcCPC/Arkos/ArkosTrackerPlayer_CPCStable_MSX.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcCPC/CPCPLUS_V1_Palette.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcCPC/CPC_V1_ChibiSound.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcCPC/CPC_V1_Functions.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcCPC/CPC_V1_Palette.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcCPC/CPC_V1_VDPMemory_9K.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcENT/ENT_V1_ChibiSound.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcENT/ENT_V1_Functions.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcGB/GB_V1_Header.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcGB/GB_V1_ReadJoystick.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcMSX/MSX_V1_Functions.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcSAM/SAM_V1_BitmapMemory.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcSAM/SAM_V1_ChibiSound.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcSAM/SAM_V1_Functions.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcSAM/SAM_V1_Palette.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcSMS/SMS_V1_ChibiSound.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcTI/TI_V1_functions.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcZX/Arkos/atPlayer.speccy.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcZX/ZX48_V1_ChibiSound.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcZX/ZX_V1_BitmapMemory.asm
+-Fbin | @RW@/akuyou_GrimeZ80/SrcZX/ZX_V1_Functions.asm
+-Fbin -dotdir | @RW@/beauconstrictor_OS-Micro/src/lib/dev.asm
+-Fbin -dotdir | @RW@/dorthak_z180_sbc_bios/progs/test2.asm
+-Fbin -dotdir | @RW@/dorthak_z180_sbc_bios/progs/test3.asm
+-Fbin | @RW@/epaell_MECB/MECB_Z80/BASIC/src/basic.asm
+-Fbin -dotdir | @RW@/epaell_MECB/MECB_Z80/BASIC/src/intmini.asm
+-Fbin | @RW@/fortuna-computers_fortuna-5/bios/bios.z80
+-Fbin | @RW@/fortuna-computers_fortuna-5/bios/calls.z80
+-Fbin | @RW@/fortuna-computers_fortuna-5/bios/nmi.z80
+-Fbin | @RW@/gilbertfrancois_msx/lib/TAPE2CAS/cas2tape.asm
+-Fbin | @RW@/gilbertfrancois_msx/lib/TAPE2CAS/tape2cas.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/01_helloworld/helloworld.bin.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/01_helloworld/helloworld.cas.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/01_helloworld/helloworld.com.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/01_helloworld/helloworld.rom.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/02_helloscreen2/helloscreen2_easy.rom.asm
+-Fbin -chklabels -nocase -Dvasm=1 | @RW@/gilbertfrancois_msx/src/asm/02_helloscreen2/helloscreen2_nobios.bin.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/02_helloscreen2/helloscreen2_opt.bin.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/02_helloscreen2/helloscreen2_opt.rom.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/03_bitleveloperations/bitleveloperations.bin.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/03_bitleveloperations/bitleveloperations.rom.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/05_interrupts/interrupts.bin.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/06_fixedpoint/fixedpoint.bin.asm
+-Fbin -chklabels -nocase -Dvasm=1 | @RW@/gilbertfrancois_msx/src/asm/07_ifthenelse/ifthenelse.bin.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/08_floatingpoint/f16_lib.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/09_sudoku/sudoku.rom.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/10_control/control.bin.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/11_matrix/lib_chars.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/11_matrix/lib_vdp.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/12_doom/doom.dos.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/12_doom/doom_e1m1_rasm.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/12_doom/doom_e1m1_universal.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/12_doom/lib_vdp.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/12_doom/titlescreen.asm
+-Fbin -chklabels -nocase -Dvasm=1 | @RW@/gilbertfrancois_msx/src/asm/13_nyancat/nyancat.dos.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/13_nyancat/nyancat_data.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/13_nyancat/nyancat_data_imp.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/13_nyancat/nyancat_music_rasm.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/13_nyancat/nyancat_music_universal.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/14_slots/slots.bin.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/lib/lib_char_eu.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/lib/lib_vdp.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/rs232-2400-19200.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/sample.asm
+-Fbin | @RW@/gilbertfrancois_msx/src/asm/sound.asm
+-Fbin | @RW@/gilbertfrancois_terminal-art-the-matrix/asm/src/lib_chars.asm
+-Fbin | @RW@/gilbertfrancois_terminal-art-the-matrix/asm/src/lib_vdp.asm
+-Fbin | @RW@/jwestfall69_ddragon2-sound-diag/error_addresses.asm
+-Fbin | @RW@/polluks_EOS/src/eos_c128.asm
+-Fbin | @RW@/polluks_EOS/src/eos_cpc.asm
+-Fbin | @RW@/polluks_EOS/src/z80rom.asm
+-Fbin | @RW@/polluks_trsdos/boot_cpc.asm
+-Fbin | @RW@/polluks_trsdos/hello.asm
+-Fbin | @RW@/polluks_trsdos/trsmark.asm
+-Fbin | @RW@/polluks_trsdos/z80_boot.asm
+-Fbin -dotdir | @RW@/tehongis_reTry/PC/TheBall/c64_sprites.asm
+-Fbin | @RW@/tehongis_reTry/SpectrumZX/main.asm
+-Fbin | @RW@/tehongis_reTry/SpectrumZX/test.asm
+-Fbin | @RW@/vilcans_2018AD/ffcrunch/eliasd.s
+-Fbin | @RW@/vilcans_2018AD/ffcrunch/ffcrunch.s
+-Fbin | @RW@/vilcans_2018AD/ffcrunch/unary.s
