@@ -1,0 +1,4 @@
+gfasm
+src/*.o
+*.o
+tests/out/
