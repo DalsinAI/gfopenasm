@@ -362,7 +362,7 @@ static int hunk_write(FILE *f, const char *outname)
   for (i = 0; i < nhsec; i++) check_unsupported_relocs(hsec[i], 0);
   if (errcount) return 0;
   w32(HUNK_UNIT);
-  wname(idnt_name ? idnt_name : input_name);
+  wname(idnt_name ? idnt_name : basename_(input_name));
   for (i = 0; i < nhsec; i++) {
     section *s = hsec[i];
     int extra;
