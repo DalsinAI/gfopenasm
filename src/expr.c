@@ -428,10 +428,18 @@ long double eres_float(eres *r)
 }
 
 /* Fold constant sub-trees (used to freeze SET values). */
+static int has_label(expr *e)
+{
+  if (!e) return 0;
+  if (e->op == X_SYM) return e->sym && e->sym->type == S_LABEL;
+  return has_label(e->l) || has_label(e->r);
+}
+
 expr *simplify_expr(expr *e)
 {
   eres r;
   if (!e) return e;
+  if (has_label(e)) return e;     /* label addresses are not final yet */
   eval_expr(e, &r);
   if (r.defined && !r.bad && !r.sec && !r.ext) {
     if (r.isflt) return new_flt(r.f);

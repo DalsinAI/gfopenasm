@@ -1,0 +1,6 @@
+# ARM (vasmarm_std): GFASM=./vasmarm_std VASM=$ORACLES/vasmarm_std sh tests/realworld.sh tests/realworld-arm.list
+-m250 -Fbin -opt-adr | @RW@/kieranhj_proto-arc/proto-arc.asm
+-a2 -m2 -Fbin | @RW@/markmoxon_lander-source-code-acorn-archimedes/3-assembled-output/Lander.arm
+-a2 -m2 -Fbin | @RW@/markmoxon_lander-source-code-acorn-archimedes//3-assembled-output/RunImage.arm
+-chklabels -nocase -Fbin | @RW@/HananB27_FroggerAssembly/game.asm
+-m7tdmi -noialign -chklabels -nocase -Dvasm=1 -DBuildNDS=1 -Fbin | @RW@/W3SLAV_NDS-ARM-Assembly-Template/SrcNDS/NDS_Hello.asm

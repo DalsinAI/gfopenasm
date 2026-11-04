@@ -45,10 +45,20 @@ carry a `# gfasm-cpu: ppc std` line (or `; gfasm-cpu: ppc mot` in mot syntax).
 
 (`vasmppc_std` here is a symlink to `gfasm`.)
 
+ARM: `gen/gen_arm.py` generates `arm_insn*.s` (ARM), `arm_lit0.s` (`ldr =`
+literal pools) and `arm_thumb0.s` (THUMB), oracle-filtered. The
+directive/output tests `a_*` are written by `gen/mk_arm.sh`.
+
+    GFASM=$PWD/vasmarm_std VASM=$ORACLES/vasmarm_std sh tests/realworld.sh tests/realworld-arm.list
+
+In a list file, `<dir>//<relative path>` assembles the source from `<dir>`.
+
 ## Results (2026-11-04, vasm 2.0f oracle)
 
 | Set | Result |
 |---|---|
+| ARM committed corpus | 10/10 files match (about 2,300 ARM lines with all condition codes and suffixes, 340 THUMB lines, literal pools, plus ELF/bin/big-endian/THUMB directive tests) |
+| ARM real-world (Archimedes: kieranhj proto-arc, Mark Moxon's Lander and RunImage; GBA Frogger; NDS hello template) | 5/5 match |
 | PowerPC committed corpus | 10/10 files match (5 instruction files, about 7,400 lines incl. AltiVec and simplified mnemonics, plus std/mot, ELF/hunk/bin tests) |
 | PowerPC real-world (SonnetAmiga WarpOS sources, EEC `ppcifuncs.asm`) | 4/4 match |
 | committed corpus (68k) | 30/30 files match (about 18,000 instruction lines plus 16 directive/output tests) |

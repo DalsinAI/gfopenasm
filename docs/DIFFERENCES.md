@@ -1,4 +1,4 @@
-# Known differences from vasm (phase 1, 68k / mot)
+# Known differences from vasm
 
 gfasm aims to produce the same object bytes as vasm. In the 68k phase, the
 committed corpus and every real-world source we test match byte-for-byte (see
@@ -71,3 +71,54 @@ describe. gfasm copies them so that the output bytes match:
 - 64-bit instructions (`-mppc64`), POWER/POWER2, 40x/44x/Book-E/e500 extras,
   `-opt-branch`.
 - `-little` is accepted, but it is not covered by the corpus.
+
+## ARM (phase 3) vasm behaviours copied
+
+`vasmarm_std` 2.0f (ARM backend 0.6) has some surprising behaviours. gfasm
+copies them so that the bytes match:
+
+- Mnemonics are parsed as base + optional condition + optional suffix. When
+  the rest does not form a valid suffix it is ignored, so `addseq` is a plain
+  `add`, `movs.b` is `mov`, `ldrbeq` is an unconditional word `ldr` and
+  `adrleq` is `adrle`. ADRL is written `adr{cond}l` or `adrl`.
+- `ldr rd,=expr`: constants that fit use `mov`/`mvn`. Other values go to the
+  literal pool, but the load offset is computed as *entry offset within the
+  pool* - (pc + 8), so it is only in range in the first 4 KB of a section.
+  `ldrh rd,=expr` uses 4-byte pool entries and a base register field of 0.
+  A label in the current section of a relocatable object becomes
+  `add/sub r0,pc,#...` (the destination register is lost). Pool
+  relocations are written in reverse order. Pools are auto-aligned to 4
+  (warning) and flushed at `.ltorg` and at the end of the section.
+- Immediates that are not an 8-bit rotated value use the complementary
+  instruction (`mov`/`mvn`, `and`/`bic`, `add`/`sub`, `cmp`/`cmn`,
+  `adc`/`sbc`). `mov`, `mvn`, `add` and `sub` are otherwise split in two
+  instructions (`mov`+`orr`, `mvn`+`eor`, `add`+`add`, `sub`+`sub`); the
+  second one takes the lowest 8-bit rotated window that leaves an encodable
+  rest. With `-opt-adr`, `adr` becomes `adrl` the same way.
+- `ldr rd,label` with a halfword/signed size encodes base register 0.
+  `[Rn]` without offset sets U=0 for halfword loads and `ldc`/`stc`. The
+  `l` (long) suffix of `ldc`/`stc` is accepted but not encoded.
+  Post-indexed `ldc`/`stc` do not set the W bit.
+- `lsr #0`/`asr #0` encode as `#32`; `ror #0` is `rrx`.
+- THUMB: `nop` assembles the 4-byte ARM `mov r0,r0` (needs 4-byte alignment
+  and gets an `$a` mapping symbol). `push`/`pop` with any register above r7
+  set the lr/pc bit. A conditional branch out of range becomes
+  `b<!cc> .+4` + `b label`; for forward targets the second branch is
+  computed from the address of the first.
+- Instructions are never auto-aligned (error instead). Sections get the
+  alignment of their `.align` directives and pools only.
+- `$` in data directives is the address of the item (also in the other std
+  syntax targets).
+- ELF: REL relocations (addends in place), `e_flags` 0x04000000, mapping
+  symbols `$a`/`$t`/`$d` (not for `.space` or bss sections), `.comm`
+  alignment 4.
+
+## ARM not implemented yet
+
+- The `-a*`/`-m*` CPU options are accepted but do not reject instructions
+  that the selected architecture lacks (vasm error 2001).
+- `-opt-ldrpc` (two-instruction pc-relative `ldr`/`str`) is accepted but not
+  implemented.
+- gfasm accepts `.float`, `.double` and `.hword` for ARM; vasm does not.
+- Literal pool entries whose value is a forward-referenced equate may be
+  ordered differently from vasm's.

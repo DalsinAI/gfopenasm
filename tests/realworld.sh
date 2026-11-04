@@ -2,7 +2,8 @@
 # Compare gfasm with the vasm oracle on real-world sources that are not part
 # of this repository (third-party licences).  Each line of the list file is
 #     <options> | <path to source>
-# and the source is assembled in its own directory with those options.
+# and the source is assembled in its own directory with those options
+# (or, for "<dir>//<relative path>", in <dir>).
 #   VASM=/path/to/vasmm68k_mot tests/realworld.sh tests/realworld.list
 top=$(cd "$(dirname "$0")/.." && pwd)
 G="${GFASM:-$top/gfasm}"
@@ -15,8 +16,11 @@ while IFS= read -r line; do
   line=$(printf "%s" "$line" | sed "s|@RW@|${RW:-$HOME/t5scratch/gfasm-rw}|g; s|@NDK@|${NDK:-$HOME/AmiCradle/stoves/os32/ndk/Include_I}|g; s|~/|$HOME/|g")
   opts=${line%%|*}
   src=$(echo "${line#*|}" | sed 's/^ *//; s/ *$//')
+  case "$src" in
+  *//*) dir=${src%%//*}; base=${src#*//}; src="$dir/$base";;   # dir//file: assemble from dir
+  *) dir=$(dirname "$src"); base=$(basename "$src");;
+  esac
   [ -f "$src" ] || { echo "SKIP (missing) $src"; skip=$((skip+1)); continue; }
-  dir=$(dirname "$src"); base=$(basename "$src")
   if ! ( cd "$dir" && "$VASM" -quiet $opts -o "$tmp/v.o" "$base" ) >/dev/null 2>&1; then
     echo "SKIP (oracle fails) $src"; skip=$((skip+1)); continue
   fi

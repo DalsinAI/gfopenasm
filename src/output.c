@@ -542,7 +542,7 @@ static int elf_write(FILE *f, const char *outname)
     int k = 0;
     for (i = 0; i < nps; i++)
       if (ps[i]->relocs) {
-        char *n = strprintf(".rela%s", ps[i]->name);
+        char *n = strprintf(cpu->elf_rel ? ".rel%s" : ".rela%s", ps[i]->name);
         sh_name[nps + k++] = (uint32_t)st_add(&shs, n);
         free(n);
       }
@@ -652,14 +652,14 @@ static int elf_write(FILE *f, const char *outname)
       if (ps[i]->relocs) {
         off = (off + 3) & ~3L;
         reloff[i] = off;
-        off += ps[i]->nrelocs * 12;
+        off += ps[i]->nrelocs * (cpu->elf_rel ? 8 : 12);
       }
     /* header */
     {
       uint8_t id[16] = { 0x7f, 'E', 'L', 'F', 1, 2, 1, 0 };
       if (out_le) id[5] = 1;
       wbytes(id, 16);
-      w16(1); w16(cpu->elf_machine); w32(1); w32(0); w32(0); w32((uint32_t)shoff); w32(0);
+      w16(1); w16(cpu->elf_machine); w32(1); w32(0); w32(0); w32((uint32_t)shoff); w32(cpu->elf_flags);
       w16(52); w16(0); w16(0); w16(40); w16(nsh); w16(shstr_idx);
     }
     for (i = 0; i < nps; i++)
@@ -684,16 +684,17 @@ static int elf_write(FILE *f, const char *outname)
       int k = 0;
       for (i = 0; i < nps; i++)
         if (ps[i]->relocs) {
+          int esz = cpu->elf_rel ? 8 : 12;
           w32(sh_name[nps + k++]);
-          w32(4);
+          w32(cpu->elf_rel ? 9 : 4);
           w32(0);
           w32(0);
           w32((uint32_t)reloff[i]);
-          w32(ps[i]->nrelocs * 12);
+          w32(ps[i]->nrelocs * esz);
           w32(symtab_idx);
           w32(1 + i);
           w32(4);
-          w32(12);
+          w32(esz);
         }
     }
     w32(17); w32(3); w32(0); w32(0); w32((uint32_t)shstroff); w32((uint32_t)shs.n); w32(0); w32(0); w32(1); w32(0);
@@ -706,6 +707,7 @@ static int elf_write(FILE *f, const char *outname)
     fputc(syms[i].info, f); fputc(syms[i].other, f); w16(syms[i].shndx);
   }
   wbytes(strs.d, strs.n);
+  if (!nrel) wpad((ftell(of) + 3) & ~3L);
   for (i = 0; i < nps; i++) {
     reloc *r;
     if (!ps[i]->relocs) continue;
@@ -720,7 +722,7 @@ static int elf_write(FILE *f, const char *outname)
       }
       w32((uint32_t)r->off);
       w32(((uint32_t)symi << 8) | t);
-      w32((uint32_t)r->addend);
+      if (!cpu->elf_rel) w32((uint32_t)r->addend);
     }
   }
   return errcount == 0;
