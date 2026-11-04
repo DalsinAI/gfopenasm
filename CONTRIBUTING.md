@@ -39,21 +39,36 @@ listed as intentional in [docs/DIFFERENCES.md](docs/DIFFERENCES.md).
 - gfasm runs on many hosts, small ones included, so keep it portable:
   no POSIX-only or Windows-only calls in the core; read and write files
   in binary mode; never depend on the host's byte order (write output
-  byte by byte); and do not assume a large stack.
+  byte by byte); do not assume a large stack; and do float arithmetic
+  only with the functions in `src/float.c`, never with the host's
+  `float`/`double` operations, so that every host writes the same bytes.
+- File names go through `path_is_sep()`, `path_is_absolute()`,
+  `path_base()` and `path_host()` in `src/util.c`, which know Windows and
+  AmigaOS conventions.
 - Follow the style of the file you are editing.
 
 ## Continuous integration
 
 [`ci/check.yml`](ci/check.yml) is the check that every pull request has
 to pass. It is written in the GitHub Actions workflow format and runs in
-an `ubuntu:24.04` container: it builds gfasm with gcc and with clang
-with warnings as errors, runs `make test`, and checks that the test
-scripts parse. You can run the same steps by hand:
+an `ubuntu:24.04` container. It builds gfasm with gcc and with clang with
+warnings as errors and runs `make test`; then it cross-builds the Linux
+arm64, Linux PowerPC (big-endian) and Windows x86-64 programs twice each,
+checks that the two builds are identical, and runs the corpus with each
+under qemu or wine (`ci/build.sh`, `ci/test.sh`). You can run the first
+steps by hand:
 
     docker run --rm -v "$PWD":/w -w /w ubuntu:24.04 sh -c '
       apt-get update && apt-get install -y build-essential clang python3 &&
       make CFLAGS="-O2 -std=c11 -Wall -Wextra -Wno-unused-parameter -Werror" &&
       make test'
+
+## Releases
+
+Each release is built from its tag with `ci/build.sh` (twice, compared),
+tested with `ci/test.sh`, `ci/aros-hosted.sh` and on AmigaOS, packaged
+with `ci/package.sh`, and published with a `SHA256SUMS` file. See "Build
+from source" in the README for the compilers.
 
 ## Licence
 

@@ -1,9 +1,11 @@
-name: gfasm (build with gcc and clang, test corpus)
+name: gfasm (gcc and clang, test corpus, Linux arm64, big-endian PowerPC, Windows)
 
 # The check every pull request has to pass, in the GitHub Actions workflow
-# format: build gfasm with gcc and with clang with warnings as errors, run the
-# test corpus and check that the test scripts parse.  It needs nothing but an
-# ubuntu:24.04 container; see CONTRIBUTING.md for running it by hand.
+# format.  It needs nothing but an ubuntu:24.04 container: it builds gfasm
+# with gcc and with clang with warnings as errors and runs the test corpus;
+# then cross-builds the Linux arm64, Linux PowerPC (a big-endian host) and
+# Windows x86-64 programs twice each, checks that both builds are the same,
+# and runs the corpus with each under qemu or wine.  See CONTRIBUTING.md.
 on:
   workflow_dispatch:
   pull_request:
@@ -19,10 +21,14 @@ jobs:
       LANG: C.UTF-8
       LC_ALL: C.UTF-8
       DEBIAN_FRONTEND: noninteractive
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Base packages
-        run: apt-get update && apt-get install -y --no-install-recommends build-essential clang python3 ca-certificates git
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends build-essential clang python3 ca-certificates git \
+            gcc-aarch64-linux-gnu libc6-dev-arm64-cross gcc-powerpc-linux-gnu libc6-dev-powerpc-cross \
+            gcc-mingw-w64-x86-64 qemu-user-static wine64 wine
       - uses: actions/checkout@v4
       - name: Build with gcc (warnings are errors)
         run: make clean && make CFLAGS="-O2 -std=c11 -Wall -Wextra -Wno-unused-parameter -Werror"
@@ -30,7 +36,21 @@ jobs:
         run: make clean && make CC=clang CFLAGS="-O2 -std=c11 -Wall -Wextra -Wno-unused-parameter -Werror"
       - name: Test corpus (byte for byte against the stored vasm 2.0f output)
         run: make test
+      - name: Release builds, twice each, the same bytes
+        run: |
+          for t in linux-x86_64 linux-arm64 linux-ppc windows-x86_64; do
+            sh ci/build.sh $t /tmp/b1/$t && sh ci/build.sh $t /tmp/b2/$t
+            cmp /tmp/b1/$t/gfasm* /tmp/b2/$t/gfasm* && echo "$t: two builds identical"
+          done
+      - name: Linux x86-64 release build
+        run: sh ci/test.sh linux-x86_64 /tmp/b1/linux-x86_64
+      - name: Linux arm64 (qemu)
+        run: sh ci/test.sh linux-arm64 /tmp/b1/linux-arm64
+      - name: Big-endian host, Linux PowerPC (qemu)
+        run: sh ci/test.sh linux-ppc /tmp/b1/linux-ppc
+      - name: Windows x86-64 (wine)
+        run: sh ci/test.sh windows-x86_64 /tmp/b1/windows-x86_64
       - name: Scripts parse
         run: |
-          for f in tests/*.sh tests/gen/*.sh; do sh -n "$f"; done
+          for f in tests/*.sh tests/gen/*.sh ci/*.sh; do sh -n "$f"; done
           python3 -m py_compile tests/*.py tests/gen/*.py
