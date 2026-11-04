@@ -116,6 +116,7 @@ static int parse_charconst(const char **pp, ival *v)
     n++;
     p++;
   }
+  (void)n;
   *pp = p;
   if (val <= 0xffffffffULL) *v = wrap32((ival)val); else *v = (ival)val;
   return 1;

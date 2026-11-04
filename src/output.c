@@ -47,15 +47,31 @@ static int sec_output(section *s)
 {
   if (s->flags & SEC_OFFSET) return 0;
   if (sec_has_atoms(s)) return 1;
+  if (s == sec_first && !s->next) return 1;   /* empty source: one empty hunk */
   if (s->size == 0 && !opt_keepempty && !sec_has_symbols(s) && !s->relocs) return 0;
   return 1;
 }
 
+/* labels, and equates whose value is an address in a section */
+static section *sym_section(symbol *y, ival *val)
+{
+  if (y->type == S_LABEL) { *val = y->val; return y->sec; }
+  if (y->type == S_EXPR || y->type == S_SET) {
+    eres r;
+    eval_expr(y->e, &r);
+    if (r.sec && !r.ext && !r.bad) { *val = r.v; return r.sec; }
+  }
+  return NULL;
+}
+
 static int is_listed_symbol(symbol *y)
 {
+  ival v;
+  section *s;
   if (y->flags & (SF_INTERNAL | SF_LOCAL)) return 0;
-  if (y->type != S_LABEL) return 0;
-  if (y->sec && (y->sec->flags & SEC_OFFSET)) return 0;
+  s = sym_section(y, &v);
+  if (!s) return 0;
+  if (s->flags & SEC_OFFSET) return 0;
   return 1;
 }
 
@@ -261,9 +277,10 @@ static void write_ext(section *s, int first)
     e[i].offs[e[i].n++] = r->off;
   }
   for (y = sym_first; y; y = y->lnext) {
+    ival v;
     if (!(y->flags & SF_EXPORT)) continue;
-    if ((y->type == S_LABEL && y->sec == s) ||
-        (first && (y->type == S_EXPR || y->type == S_SET) && !(y->flags & SF_INTERNAL))) { any = 1; break; }
+    if (sym_section(y, &v) == s ||
+        (first && (y->type == S_EXPR || y->type == S_SET) && !(y->flags & SF_INTERNAL) && eval_const(y->e, &v))) { any = 1; break; }
   }
   if (!ne && !any) return;
   w32(HUNK_EXT);
@@ -277,10 +294,11 @@ static void write_ext(section *s, int first)
   }
   free(e);
   for (y = sym_first; y; y = y->lnext) {
+    ival sv;
     if (!(y->flags & SF_EXPORT) || (y->flags & SF_INTERNAL)) continue;
-    if (y->type == S_LABEL && y->sec == s) {
+    if (sym_section(y, &sv) == s) {
       wname_type(1, y->name);
-      w32((uint32_t)y->val);
+      w32((uint32_t)sv);
     } else if (first && (y->type == S_EXPR || y->type == S_SET)) {
       ival v;
       if (eval_const(y->e, &v)) {
@@ -297,14 +315,15 @@ static void write_symbols(section *s)
   symbol *y;
   int any = 0;
   if (opt_nosym) return;
+  ival v;
   for (y = sym_first; y; y = y->lnext)
-    if (is_listed_symbol(y) && y->sec == s) { any = 1; break; }
+    if (is_listed_symbol(y) && sym_section(y, &v) == s) { any = 1; break; }
   if (!any) return;
   w32(HUNK_SYMBOL);
   for (y = sym_first; y; y = y->lnext)
-    if (is_listed_symbol(y) && y->sec == s) {
+    if (is_listed_symbol(y) && sym_section(y, &v) == s) {
       wname(y->name);
-      w32((uint32_t)y->val);
+      w32((uint32_t)v);
     }
   w32(0);
 }
@@ -490,7 +509,7 @@ static int elf_write(FILE *f, const char *outname)
   section **ps = NULL;
   int nps = 0, i, nrel = 0;
   esym *syms = NULL;
-  int nsyms = 0, firstglobal;
+  int nsyms = 0, firstglobal = 0;
   symbol *y;
   uint32_t *sh_name;
   long off, shoff, symoff, stroff;
@@ -542,14 +561,17 @@ static int elf_write(FILE *f, const char *outname)
   /* collect symbols in reverse definition order */
   lv = NULL;
   for (y = sym_first; y; y = y->lnext) { lv = xrealloc(lv, (nl + 1) * sizeof(*lv)); lv[nl++] = y; }
-  for (int pass = 0; pass < 2; pass++) {
+  for (int pass = 0; pass < 3; pass++) {
     if (pass == 1) firstglobal = nsyms;
-    for (i = nl - 1; i >= 0; i--) {
+    for (int ii = 0; ii < nl; ii++) {
       int global, idx = -1, j;
+      i = pass == 2 ? ii : nl - 1 - ii;
       y = lv[i];
       if (y->flags & (SF_INTERNAL | SF_LOCAL)) continue;
       global = (y->flags & SF_EXPORT) || y->type == S_IMPORT || y->type == S_COMMON;
-      if (global != pass) continue;
+      if (pass == 0 && global) continue;
+      if (pass == 1 && (!global || y->type == S_IMPORT)) continue;
+      if (pass == 2 && y->type != S_IMPORT) continue;
       if (y->type == S_LABEL) {
         if (!y->sec || (y->sec->flags & SEC_OFFSET)) continue;
         for (j = 0; j < nps; j++) if (ps[j] == y->sec) idx = j;

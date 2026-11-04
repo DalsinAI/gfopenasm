@@ -474,7 +474,10 @@ void finalize_sections(void)
         uint8_t pat[12];
         int es = a->u.space.esize;
         memset(pat, 0, sizeof(pat));
-        if (a->u.space.fill) {
+        if (a->u.space.fill && a->u.space.ftype) {
+          /* vasm: float fill for dcb.s yields zero, others are errors */
+          if (a->u.space.ftype != 's') error("expression must be constant");
+        } else if (a->u.space.fill) {
           bbuf tmp = {0};
           emit_data_value(s, &tmp, a->u.space.fill, es, a->u.space.ftype, 0, pc);
           if (s->rlast && s->rlast->off == 0 && tmp.n) {
@@ -667,6 +670,7 @@ void push_file(const char *name)
     loaded[nloaded++] = f;
   }
   free(path);
+  if (src) uid_counter++;   /* include files consume a unique id (oracle) */
   s = xcalloc(1, sizeof(*s));
   s->kind = SRC_FILE;
   s->file = f;
@@ -694,7 +698,7 @@ void push_macro(macro *m, char **args, int nargs, const char *qual)
   s->args = args;
   s->nargs = nargs;
   s->qual = qual ? xstrdup(qual) : NULL;
-  s->uid = uid_counter++;
+  s->uid = ++uid_counter;
   s->carg = 1;
   s->parent = src;
   s->file = src ? src->file : NULL;
@@ -714,6 +718,7 @@ void push_rept(char **lines, int nlines, int count)
   source *s;
   ival v = -1;
   s = xcalloc(1, sizeof(*s));
+  s->uid = ++uid_counter;   /* a repeat block consumes one unique id */
   s->kind = SRC_REPT;
   s->lines = lines;
   s->nlines = nlines;

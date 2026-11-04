@@ -1,0 +1,14 @@
+#!/bin/sh
+# Clone the public real-world test repositories (pinned) into ${RW:-$HOME/t5scratch/gfasm-rw}.
+# They are third-party code: used as test input only, never copied into this repo.
+RW=${RW:-$HOME/t5scratch/gfasm-rw}; mkdir -p "$RW"; cd "$RW" || exit 1
+[ -d FPGAArcade_amiga_code ] || { git init -q FPGAArcade_amiga_code && git -C FPGAArcade_amiga_code fetch -q --depth 1 https://github.com/FPGAArcade/amiga_code 9ed89723582a7a9c6a469ac28410421dd9c8108e && git -C FPGAArcade_amiga_code checkout -q FETCH_HEAD; }
+[ -d KONEY_crippled_cyborg_amiga ] || { git init -q KONEY_crippled_cyborg_amiga && git -C KONEY_crippled_cyborg_amiga fetch -q --depth 1 https://github.com/KONEY/crippled_cyborg_amiga 5fc4256332bfe1cc24fbfadc2460f420bace4563 && git -C KONEY_crippled_cyborg_amiga checkout -q FETCH_HEAD; }
+[ -d StefanKubsch_AmigaCoding ] || { git init -q StefanKubsch_AmigaCoding && git -C StefanKubsch_AmigaCoding fetch -q --depth 1 https://github.com/StefanKubsch/AmigaCoding 933c7f9ed0c6e31a684ec4e8a66b52645ebc93ae && git -C StefanKubsch_AmigaCoding checkout -q FETCH_HEAD; }
+[ -d chrisly42_Hamazing ] || { git init -q chrisly42_Hamazing && git -C chrisly42_Hamazing fetch -q --depth 1 https://github.com/chrisly42/Hamazing 9037a64ceb305233af60629b69e39acc38bbb492 && git -C chrisly42_Hamazing checkout -q FETCH_HEAD; }
+[ -d hukkax_amiga ] || { git init -q hukkax_amiga && git -C hukkax_amiga fetch -q --depth 1 https://github.com/hukkax/amiga 45ea50748d028819a3109a1aa9fc5a8dbfd5d097 && git -C hukkax_amiga checkout -q FETCH_HEAD; }
+[ -d litwr2_rosetta-pi-spigot ] || { git init -q litwr2_rosetta-pi-spigot && git -C litwr2_rosetta-pi-spigot fetch -q --depth 1 https://github.com/litwr2/rosetta-pi-spigot 24a6ab12bab2e8082afb660d67b8dd9f8e25fa01 && git -C litwr2_rosetta-pi-spigot checkout -q FETCH_HEAD; }
+[ -d mbackschat_amiga-boing ] || { git init -q mbackschat_amiga-boing && git -C mbackschat_amiga-boing fetch -q --depth 1 https://github.com/mbackschat/amiga-boing fdf1e8c40cc10162b6d09783b0d5589a45691348 && git -C mbackschat_amiga-boing checkout -q FETCH_HEAD; }
+[ -d michaelcmartin_bumbershoot ] || { git init -q michaelcmartin_bumbershoot && git -C michaelcmartin_bumbershoot fetch -q --depth 1 https://github.com/michaelcmartin/bumbershoot 8f08c91f33bb46e107538fc296d68ac760f68088 && git -C michaelcmartin_bumbershoot checkout -q FETCH_HEAD; }
+[ -d neildavis_amiga_asmdev_workflow ] || { git init -q neildavis_amiga_asmdev_workflow && git -C neildavis_amiga_asmdev_workflow fetch -q --depth 1 https://github.com/neildavis/amiga_asmdev_workflow 21be8c826fa7899515033c32677c7bf401d4990e && git -C neildavis_amiga_asmdev_workflow checkout -q FETCH_HEAD; }
+[ -d nicodex_amiga-font-luett ] || { git init -q nicodex_amiga-font-luett && git -C nicodex_amiga-font-luett fetch -q --depth 1 https://github.com/nicodex/amiga-font-luett 63cec6aac5642e74af2ef04ae572af6fe3b16baa && git -C nicodex_amiga-font-luett checkout -q FETCH_HEAD; }

@@ -34,6 +34,7 @@ static unsigned cpu_type = C000;
 static int fpu_id = 1;
 static int fpu_enabled;      /* 68881/2 or 040/060 internal */
 static int mmu_851;
+static int fpu_explicit;
 
 /* options */
 static int no_opt, opt_allbra, opt_brajmp, opt_clr, opt_div, opt_fconst = 1,
@@ -53,9 +54,9 @@ enum { RK_NONE, RK_D, RK_A, RK_PC, RK_ZPC, RK_ZD, RK_ZA, RK_FP, RK_FPC,
 
 typedef struct regname { const char *n; int kind; int num; } regname;
 static const regname regnames[] = {
-  { "pc", RK_PC, 0 }, { "zpc", RK_ZPC, 0 }, { "sp", RK_A, 7 }, { "ssp", RK_A, 7 },
+  { "pc", RK_PC, 0 }, { "zpc", RK_ZPC, 0 }, { "sp", RK_A, 7 },
   { "sr", RK_SR, 0 }, { "ccr", RK_CCR, 0 }, { "usp", RK_USP, 0x800 },
-  { "fpcr", RK_FPC, 4 }, { "fpsr", RK_FPC, 2 }, { "fpiar", RK_FPC, 1 }, { "fpi", RK_FPC, 1 },
+  { "fpcr", RK_FPC, 4 }, { "fpsr", RK_FPC, 2 }, { "fpiar", RK_FPC, 1 },
   { "sfc", RK_CTRL, 0x000 }, { "dfc", RK_CTRL, 0x001 }, { "cacr", RK_CTRL, 0x002 },
   { "itt0", RK_CTRL, 0x004 }, { "itt1", RK_CTRL, 0x005 },
   { "dtt0", RK_CTRL, 0x006 }, { "dtt1", RK_CTRL, 0x007 }, { "buscr", RK_CTRL, 0x008 },
@@ -627,6 +628,7 @@ typedef struct insn {
   int lastform;        /* branch form memory for grow_only */
   int sdreg, near;
   expr *basereg[8];
+  atom *self;
 } insn;
 
 typedef struct ictx {
@@ -807,14 +809,6 @@ static int pc_disp(ictx *c, const eres *r, ival ea, ival *d)
   }
   *d = 0;
   return 0;  /* needs relocation */
-}
-
-static int null_disp(expr *e, int forced)
-{
-  ival v;
-  if (!e) return 1;
-  if (forced) return 0;
-  return eval_const(e, &v) && v == 0;
 }
 
 static int bdsize_for(ictx *c, expr *e, int forced, int is_pc, ival extaddr, int an, int *bdlen)
@@ -1636,6 +1630,7 @@ static int h_bitop(ictx *c)
 }
 
 /* ------------------------------------------------------------ branches */
+static int targets_next(ictx *c, expr *e);
 /* target evaluation: returns 1 if displacement known (same section) */
 static int branch_disp(ictx *c, expr *e, ival base, ival *d, eres *r)
 {
@@ -1682,6 +1677,9 @@ static int h_bcc(ictx *c)
   else if (s == 'l') form = 4;
   else form = 0;
   if (form && (opt_allbra && OPT(c)) && known) form = 0;
+  if (!form && OPT(c) && known && cc != 1 && r.sec == c->sec && targets_next(c, o->bd)) {
+    return 1;   /* branch to the following instruction is deleted */
+  }
   if (!form) {
     if (!OPT(c)) form = 2;
     else if (known) {
@@ -1778,7 +1776,9 @@ static int h_jmp(ictx *c)
   if (OPT(c) && o->mode == M_ABS && !o->bdsz) {
     eres r;
     ival d;
-    int known = branch_disp(c, o->bd, c->pc + 2, &d, &r);
+    int known = branch_disp(c, o->bd, c->pc + 2, &d, &r) && r.sec == c->sec;
+    if (known && !isjsr && targets_next(c, o->bd))
+      return 1;
     if (known && !opt_phx) {
       ival d8 = fwd_adj(c, &r, d, 2), d16 = fwd_adj(c, &r, d, 4);
       if (d8 != 0 && fits8(d8) && d8 != -1 && !(grow_only && c->ip->lastsize > 2)) {
@@ -2002,6 +2002,19 @@ static int h_movem(ictx *c)
   if (s == 'b') { if (c->enc) error("illegal opcode extension"); s = 'w'; }
   if (OPT(c)) {
     if (mask == 0) return 1;
+    if (!tomem && (mask & 0xff) == 0 && a->mode == M_POST) {
+      uint32_t m2 = mask & (mask - 1);
+      if (m2 && !(m2 & (m2 - 1))) {
+        /* movem (An)+,Am/An -> two movea */
+        int r1 = 0, r2;
+        while (!(mask & (1u << r1))) r1++;
+        r2 = r1 + 1;
+        while (!(mask & (1u << r2))) r2++;
+        emit16(c, (movesz(s) << 12) | ((r1 - 8) << 9) | 0x40 | 030 | a->reg);
+        emit16(c, (movesz(s) << 12) | ((r2 - 8) << 9) | 0x40 | 030 | a->reg);
+        return 1;
+      }
+    }
     if (!(mask & (mask - 1))) {
       int r = 0;
       while (!(mask & (1u << r))) r++;
@@ -3214,7 +3227,18 @@ static int m68k_instruction(const char *mn, size_t ml, const char *ext,
   }
   a = add_atom(AT_INSN);
   a->u.insn.insn = ip;
+  ip->self = a;
   return 1;
+}
+
+/* is the expression a label placed directly behind this instruction? */
+static int targets_next(ictx *c, expr *e)
+{
+  atom *a;
+  if (!e || e->op != X_SYM || e->sym->type != S_LABEL || !c->ip->self) return 0;
+  for (a = c->ip->self->next; a && a->type == AT_LABEL; a = a->next)
+    if (a->u.label.sym == e->sym) return 1;
+  return 0;
 }
 
 static ival m68k_size(atom *a, section *s, ival pc)
@@ -3256,7 +3280,7 @@ static int set_cpu(const char *n)
   else if (!stricmp_(n, "68020up")) { cpu_type = C020 | C030 | C040 | C060; fpu_enabled = 1; }
   else if (!stricmp_(n, "68080")) { cpu_type = C080 | C040 | C060; fpu_enabled = 1; }
   else if (!stricmp_(n, "cpu32")) cpu_type = CCPU32;
-  else if (!stricmp_(n, "68881") || !stricmp_(n, "68882")) fpu_enabled = 1;
+  else if (!stricmp_(n, "68881") || !stricmp_(n, "68882")) fpu_enabled = fpu_explicit = 1;
   else if (!stricmp_(n, "68851")) mmu_851 = 1;
   else return 0;
   return 1;
@@ -3380,6 +3404,9 @@ static int m68k_directive(const char *name, const char *args)
   if (!stricmp_(name, "mc68060")) { set_cpu("68060"); return 1; }
   if (!stricmp_(name, "ac68080")) { set_cpu("68080"); return 1; }
   if (!stricmp_(name, "cpu32")) { set_cpu("cpu32"); return 1; }
+  if (!stricmp_(name, "mc68881")) { set_cpu("68881"); return 1; }
+  if (!stricmp_(name, "mc68882")) { set_cpu("68882"); return 1; }
+  if (!stricmp_(name, "mc68851")) { set_cpu("68851"); return 1; }
   if (!stricmp_(name, "fpu")) {
     ival v = 1;
     expr *e = *p ? parse_expr(&p) : NULL;
@@ -3457,18 +3484,22 @@ static int m68k_init(void)
 
 static void m68k_define_symbols(void)
 {
+  /* bit values as observed with the oracle: FPU/MMU bits only when the
+   * 68881/2 or 68851 was selected explicitly */
   ival v = 0;
   unsigned c = cpu_type;
-  if (c & C000) v |= 1;
-  if (c & C010) v |= 2;
-  if (c & C020) v |= 4;
-  if (c & C030) v |= 8;
-  if (c & C040) v |= 16;
-  if (c & C060) v |= 32;
-  if (fpu_enabled) v |= 64;
+  if (c & C080) v = 1 << 20;
+  else {
+    if (c & C000) v |= 1;
+    if (c & C010) v |= 2;
+    if (c & C020) v |= 4;
+    if (c & C030) v |= 8;
+    if (c & C040) v |= 16;
+    if (c & C060) v |= 32;
+    if (c & CCPU32) v |= 256;
+  }
+  if (fpu_explicit) v |= 64;
   if (mmu_851) v |= 128;
-  if (c & CCPU32) v |= 256;
-  if (c & C080) v |= 1 << 20;
   set_internal(sym_get("__VASM"), v);
 }
 

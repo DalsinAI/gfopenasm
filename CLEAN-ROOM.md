@@ -32,7 +32,15 @@ no vasm code.
 | *System V ABI: ELF* and the m68k processor supplement | ELF32 big-endian relocatable objects, R_68K_* relocation numbers |
 | vasm 2.0f binary (`vasmm68k_mot`, m68k backend 2.8c, mot syntax 3.19f) in the `os32` stove on daletop | black-box oracle only: byte-for-byte comparison of outputs for our own test sources |
 
+Real-world *test inputs* (not references, never copied into this repository):
+the public repositories pinned in `tests/fetch-realworld.sh` and AmigaChrome-local
+sources listed in `tests/realworld.list`. They are only assembled by both
+assemblers and the outputs compared.
+
 ## Behaviour learned from black-box comparison
+
+See also docs/DIFFERENCES.md ("vasm behaviours we copy on purpose").
+
 
 These facts came from assembling our own small test sources with the oracle
 and looking at the output bytes. They are not in the manual:

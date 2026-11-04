@@ -1,0 +1,13 @@
+# AmiWind (engine/aga) - Makefile options
+-Fhunk -m68040 -phxass -I@NDK@ -I@NDK@/lvo | ~/AmiCradle-dev/labs/openttd/devices/harddisks/DH1/New Amiga Games/03 Needs Original Data/AmiWind OpenMW Amiga/amiwind/engine/aga/src/d_scan_68k.s
+-Fhunk -m68040 -phxass -I@NDK@ -I@NDK@/lvo | ~/AmiCradle-dev/labs/openttd/devices/harddisks/DH1/New Amiga Games/03 Needs Original Data/AmiWind OpenMW Amiga/amiwind/engine/aga/src/c2p8.s
+-Fhunk -m68040 -phxass -I@NDK@ -I@NDK@/lvo | ~/AmiCradle-dev/labs/openttd/devices/harddisks/DH1/New Amiga Games/03 Needs Original Data/AmiWind OpenMW Amiga/amiwind/engine/aga/src/fixedpoint_asm.s
+-Fhunk -m68040 -phxass -I@NDK@ -I@NDK@/lvo | ~/AmiCradle-dev/labs/openttd/devices/harddisks/DH1/New Amiga Games/03 Needs Original Data/AmiWind OpenMW Amiga/amiwind/engine/aga/src/d_scan_68k_nofpu.s
+-Fhunk -m68040 -phxass -I@NDK@ -I@NDK@/lvo | ~/AmiCradle-dev/labs/openttd/devices/harddisks/DH1/New Amiga Games/03 Needs Original Data/AmiWind OpenMW Amiga/amiwind/engine/aga/src/mathlib_68k.s
+-m68040 -Fhunkexe -kick1hunks -nosym -I@NDK@ | ~/AmiCradle-dev/labs/openttd/devices/harddisks/DH1/New Amiga Games/03 Needs Original Data/AmiWind OpenMW Amiga/amiwind/engine/aga/boot/cpusel.asm
+-m68040 -Fhunkexe -kick1hunks -nosym -I@NDK@ | ~/AmiCradle-dev/labs/openttd/devices/harddisks/DH1/New Amiga Games/03 Needs Original Data/AmiWind OpenMW Amiga/amiwind/engine/aga/boot/fpulib.asm
+-m68040 -Fhunkexe -kick1hunks -nosym -I@NDK@ | ~/AmiCradle-dev/labs/openttd/devices/harddisks/DH1/New Amiga Games/03 Needs Original Data/AmiWind OpenMW Amiga/amiwind/engine/aga/bench/awtraps.asm
+# libSDL2-amigaos3 c2p (gfopenrtg SDL2 module, used by Chocolate Doom)
+-Fhunk -m68040 -DBPLSIZE=10240 | ~/WorkingSpace/AmigaChrome/team5/one-stack-20261102/out-after/sdl2-work/libSDL2-amigaos3/src/video/amigaos3/c2p1x1_8_c5_gen.s
+# amigachrome-guest ROMs
+-Fhunk -m68020 | ~/AmigaChromeProjects/Os32Hello/hello.s

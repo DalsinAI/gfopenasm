@@ -33,6 +33,7 @@ static int collecting_rept;
 static int in_rem;
 static char *irp_name; static char **irp_vals; static int irp_nvals; static int rept_kind;
 
+static expr *mot_ident(const char *n, size_t len);
 /* ------------------------------------------------------------ numbers */
 static int mot_number(const char **pp, expr **out)
 {
@@ -63,6 +64,11 @@ static int mot_number(const char **pp, expr **out)
   } else if (isdigit((unsigned char)*p)) {
     const char *s = p;
     while (isdigit((unsigned char)*p)) { v = v * 10 + (*p++ - '0'); }
+    if (*p == '$' && !isalnum((unsigned char)p[1]) && p[1] != '_') {
+      *out = mot_ident(s, p + 1 - s);
+      *pp = p + 1;
+      return *out ? 1 : -1;
+    }
     if ((*p == '.' && isdigit((unsigned char)p[1])) ||
         ((*p == 'e' || *p == 'E') && (isdigit((unsigned char)p[1]) ||
          ((p[1] == '-' || p[1] == '+') && isdigit((unsigned char)p[2]))))) {
@@ -177,11 +183,14 @@ static int op_end(const char *p)
     if (*p == '(' || *p == '[' || *p == '{') par++;
     if (*p == ')' || *p == ']' || *p == '}') par--;
     if (is_ws(*p)) {
-      if (!opt_spaces) break;
-      /* with -spaces: blanks are allowed, comments must use ';' */
+      const char *b = p;
+      while (b > s && is_ws(b[-1])) b--;
+      if (!opt_spaces && !(b > s && b[-1] == ',')) break;
+      /* blanks after a comma (or with -spaces) belong to the operands */
     }
     p++;
   }
+  (void)par;
   while (p > s && is_ws(p[-1])) p--;
   return (int)(p - s);
 }
@@ -638,14 +647,45 @@ typedef struct pline {
 
 static int is_mnemchar(int c) { return isalnum(c) || c == '_' || c == '.'; }
 
+static const char *col0_dirs[] = { "endm", "endr", "endc", "endif", "else", NULL };
+
+static void split_line_raw(const char *line, pline *pl);
 static void split_line(const char *line, pline *pl)
+{
+  split_line_raw(line, pl);
+  if (pl->label && !pl->lcolon && !pl->mnem) {
+    int i;
+    for (i = 0; col0_dirs[i]; i++)
+      if (strlen(col0_dirs[i]) == pl->llen && !strnicmp_(pl->label, col0_dirs[i], pl->llen)) {
+        pl->mnem = pl->label;
+        pl->mlen = pl->llen;
+        pl->label = NULL;
+        pl->llen = 0;
+        pl->ops = "";
+        pl->olen = 0;
+        pl->rest = "";
+        break;
+      }
+  }
+}
+
+static void split_line_raw(const char *line, pline *pl)
 {
   const char *p = line;
   memset(pl, 0, sizeof(*pl));
   if (*p == '*' || *p == ';') return;
   if (*p && !is_ws(*p)) {
     const char *s = p;
-    if (is_idstart((unsigned char)*p) || *p == '@' || (opt_localu && *p == '_')) {
+    if (isdigit((unsigned char)*p)) {
+      const char *q = p;
+      while (isdigit((unsigned char)*q)) q++;
+      if (*q == '$') {
+        pl->label = s;
+        pl->llen = q + 1 - s;
+        p = q + 1;
+        if (*p == ':') { p++; pl->lcolon = 1; }
+      }
+    } else if (is_idstart((unsigned char)*p) || *p == '@' || (opt_localu && *p == '_')) {
       p++;
       while (is_idchar((unsigned char)*p) || (ident_dots && *p == '.')) p++;
       if (*p == '$') p++;
@@ -883,7 +923,6 @@ static int handle_directive(pline *pl, const char *op, int olen)
     goto done;
   }
   if (IS("cargs")) {
-    const char *p;
     ival off = 4;
     int k;
     OPS();
@@ -900,7 +939,6 @@ static int handle_directive(pline *pl, const char *op, int olen)
         if (tolower((unsigned char)dot[1]) == 'l') sz = 4;
         *dot = 0;
       }
-      p = s;
       define_equ(s, strlen(s), new_num(off), 0);
       off += sz;
     }
@@ -1326,7 +1364,7 @@ void mot_init(void)
   syntax_ident = mot_ident;
   syntax_pcexpr = mot_pc;
   sym_rs = sym_get("__RS");
-  sym_so = sym_get("__SO");
+  sym_so = sym_rs;   /* vasm shares one counter for rs and so (oracle) */
   sym_fo = sym_get("__FO");
   if (opt_devpac) {
     set_internal(sym_rs, 0);
