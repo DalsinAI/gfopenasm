@@ -82,13 +82,12 @@ and an `INSTALL.txt` for its system.
 | Linux arm64 (static) | `gfopenasm-<version>-linux-arm64.tar.xz` | corpus and real-world sources, under qemu |
 | Windows x86-64 | `gfopenasm-<version>-windows-x86_64.zip` | corpus (also with Windows paths) and real-world sources, under wine |
 | AmigaOS 3.x, 68000 or better | `gfopenasm-<version>-amigaos-m68k.lha` | corpus and real-world sources on AmigaOS 3.2 (an emulated A1200), with a 4 KB shell stack |
-| AmigaOS 4.1, PowerPC | `gfopenasm-<version>-amigaos4-ppc.lha` | not run on AmigaOS 4 yet (see below) |
+| AmigaOS 4.1, PowerPC | `gfopenasm-<version>-amigaos4-ppc.lha` | corpus on AmigaOS 4.1 Final Edition (an emulated Sam460, run from its install CD), with a 4 KB shell stack |
 | AROS x86-64 (ABI v11) | `gfopenasm-<version>-aros-x86_64.lha` | built on AROS with its own gcc; corpus and real-world sources on AROS 2026.09 (Linux-hosted) |
 
-The AmigaOS 4 build is made with the AmigaOS 4 SDK's gcc and newlib, but
-we have no AmigaOS 4 system to run it on yet. The same source passes the
-corpus and the real-world sources on big-endian PowerPC Linux, so it is
-expected to work; reports are welcome.
+The AmigaOS 4 build is made with the AmigaOS 4 SDK's gcc and newlib. The
+real-world sources have not been run on AmigaOS 4 itself; the same source
+passes them on big-endian PowerPC Linux. Reports are welcome.
 
 There is no macOS or MorphOS binary, because we cannot test one; build
 from source there (below). On any other system, build from source too: it

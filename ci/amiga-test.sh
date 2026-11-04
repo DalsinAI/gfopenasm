@@ -11,6 +11,9 @@
 #
 # ROOT is an Amiga path ending in ':' or '/', e.g. "RAM:gfasm/" or
 # "Work:gfasm/".  The script also runs gfasm under a vasm name.
+# Without a writable disk (a system run from its CD), put DIR on a CD with
+# gfasm in it, copy it to RAM: and use ROOT "RAM:gfasm/"; the outputs can be
+# checked there with MD5Sum against the md5 of tests/expected/*.out.
 set -eu
 cmd=${1:?usage: ci/amiga-test.sh make DIR ROOT | check DIR}
 D=${2:?usage: ci/amiga-test.sh make DIR ROOT | check DIR}
