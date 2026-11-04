@@ -26,6 +26,21 @@ static char *irp_name; static char **irp_vals; static int irp_nvals;
 /* ------------------------------------------------------------ numbers */
 static expr *std_ident(const char *n, size_t len);
 
+/* GNU-style numeric local labels "N:", referenced as "Nb" / "Nf" */
+typedef struct numlab { unsigned long n; int count; struct numlab *next; } numlab;
+static numlab *numlabs;
+static numlab *numlab_get(unsigned long n)
+{
+  numlab *l;
+  for (l = numlabs; l; l = l->next) if (l->n == n) return l;
+  l = xcalloc(1, sizeof(*l));
+  l->n = n;
+  l->next = numlabs;
+  numlabs = l;
+  return l;
+}
+static char *numlab_name(unsigned long n, int count) { return strprintf("\x1d%lu.%d", n, count); }
+
 static int std_number(const char **pp, expr **out)
 {
   const char *p = *pp;
@@ -59,6 +74,18 @@ static int std_number(const char **pp, expr **out)
       char *end;
       long double f = (long double)strtod(s, &end);
       if (end > p || *p == '.') { *pp = end; *out = new_flt(f); return 1; }
+    }
+    if ((*p == 'b' || *p == 'f' || *p == 'B' || *p == 'F') && !isalnum((unsigned char)p[1]) && p[1] != '_' && p[1] != '$') {
+      /* numeric local label reference */
+      unsigned long n = strtoul(s, NULL, 10);
+      numlab *l = numlab_get(n);
+      char *nm = numlab_name(n, l->count + (tolower((unsigned char)*p) == 'f'));
+      symbol *y = sym_get(nm);
+      free(nm);
+      y->flags |= SF_REFD | SF_LOCAL;
+      *pp = p + 1;
+      *out = new_sym(y);
+      return 1;
     }
     for (p = s; isdigit((unsigned char)*p); p++)
       v = octal ? v * 8 + (*p - '0') : v * 10 + (*p - '0');
@@ -104,7 +131,7 @@ static symbol *get_sym(const char *n, size_t len)
 static expr *std_ident(const char *n, size_t len)
 {
   symbol *s;
-  if (len == 1 && n[0] == '$') {
+  if (len == 1 && (n[0] == '$' || (n[0] == '.' && cpu->elf_machine == 3))) {
     extern expr *(*syntax_pcexpr)(void);
     return syntax_pcexpr();
   }
@@ -139,6 +166,21 @@ static expr *std_pc(void)
 static void define_label(const char *n, size_t len)
 {
   symbol *s;
+  {
+    size_t i;
+    for (i = 0; i < len && isdigit((unsigned char)n[i]); i++) ;
+    if (i == len) {
+      unsigned long num = strtoul(n, NULL, 10);
+      numlab *l = numlab_get(num);
+      char *nm = numlab_name(num, ++l->count);
+      s = sym_get(nm);
+      free(nm);
+      s->flags |= SF_LOCAL;
+      if (s->type != S_NONE) { error("symbol <%.*s> redefined", (int)len, n); return; }
+      add_label_atom(s);
+      return;
+    }
+  }
   if (!is_local(n, len)) { free(last_global); last_global = xstrndup(n, len); }
   s = get_sym(n, len);
   if (s->type != S_NONE && s->type != S_IMPORT) { error("symbol <%.*s> redefined", (int)len, n); return; }
@@ -524,7 +566,8 @@ static int directive(const char *d, const char *rest, char **ops, int nops)
     if (nops > 2) cexpr(ops[2], &al);
     if (IS("comm")) {
       s->type = S_COMMON; s->val = v;
-      s->align = al ? al : (v < 8 || cpu->elf_machine == 40) ? 4 : 8;   /* ARM: 4 (oracle) */
+      /* oracle: ARM always 4, x86 always 1 */
+      s->align = al ? al : cpu->elf_machine == 3 ? 1 : (v < 8 || cpu->elf_machine == 40) ? 4 : 8;
       s->flags |= SF_EXPORT | SF_DEFINED;
     } else {
       section *save = cursec;
@@ -617,7 +660,21 @@ static int directive(const char *d, const char *rest, char **ops, int nops)
   if (IS("err")) { error("%s", rest); return 1; }
   if (IS("abort")) fatal("assembly aborted: %s", rest);
   if (IS("fail")) { cexpr(rest, &v); if (v >= 500) warning(".fail %lld encountered", (long long)v); else error(".fail %lld encountered", (long long)v); return 1; }
-  if (IS("file") || IS("ident")) { if (IS("file") && nops) { extern char *idnt_name; free(idnt_name); idnt_name = unq(ops[0]); } return 1; }
+  if (IS("file") || IS("ident")) { if (IS("file") && nops) { extern char *idnt_name; free(idnt_name); idnt_name = unq(ops[0]); elf_file_name = unq(ops[0]); } return 1; }
+  if (IS("type") && nops >= 2) {
+    symbol *s = get_sym(ops[0], strlen(ops[0]));
+    const char *t = skip_ws(ops[1]);
+    if (*t == '@' || *t == '%') t++;
+    if (!strnicmp_(t, "function", 8)) s->stype = 2;
+    else if (!strnicmp_(t, "object", 6)) s->stype = 1;
+    else { ival v = 0; cexpr(t, &v); s->stype = (int)v; }
+    return 1;
+  }
+  if (IS("size") && nops >= 2) {
+    symbol *s = get_sym(ops[0], strlen(ops[0]));
+    s->size_e = pexpr(ops[1]);
+    return 1;
+  }
   if (IS("list") || IS("nolist") || IS("size") || IS("type") || IS("stabs") || IS("stabn") ||
       IS("stabd") || IS("swbeg") || IS("loc") || IS("cfi_startproc") || IS("cfi_endproc") ||
       IS("previous") || IS("machine") || IS("gnu_attribute") || IS("version") || IS("p2alignl_"))
@@ -725,7 +782,7 @@ static void std_init(void)
   ident_dots = 1;
   { extern const char *default_sec_name; default_sec_name = ".text"; }
   macro_id_plain = 1;
-  commentchar = (cpu->elf_machine == 20 || cpu->elf_machine == 21) ? '#' : ';';
+  commentchar = (cpu->elf_machine == 20 || cpu->elf_machine == 21 || cpu->elf_machine == 3) ? '#' : ';';
   sym_reptn = sym_get("REPTN");
   set_internal(sym_reptn, -1);
   sym_narg = sym_get("NARG");

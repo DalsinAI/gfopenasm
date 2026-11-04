@@ -141,6 +141,7 @@ typedef struct symbol {
   int order;
   int stype;           /* ELF symbol type (0 notype, 1 object, 2 func) */
   ival ssize;          /* ELF symbol size */
+  expr *size_e;        /* .size expression, evaluated at output */
 } symbol;
 
 symbol *sym_lookup(const char *name);
@@ -308,7 +309,7 @@ typedef struct cpu_module {
   void (*parse_done)(void);    /* after the source was read */
   void (*post_layout)(void);   /* after the final pass, before output */
 } cpu_module;
-extern cpu_module cpu_ppc, cpu_arm;
+extern cpu_module cpu_ppc, cpu_arm, cpu_x86;
 
 typedef struct syntax_module {
   const char *name;
@@ -341,6 +342,7 @@ extern ival opt_uspc;
 extern uint8_t opt_pad[8]; extern int opt_padlen;
 extern int listing_enabled;
 extern char *idnt_name;
+extern char *elf_file_name;   /* std .file */
 extern char *list_name;
 extern int list_on;
 
