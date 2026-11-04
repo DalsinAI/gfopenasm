@@ -4,6 +4,21 @@
 #include <string.h>
 #include <ctype.h>
 
+#if defined(__amigaos4__)
+/* AmigaOS 4: the shell gives a program at least this much stack */
+static const char __attribute__((used)) stack_cookie[] = "$STACK: 524288";
+#elif defined(__amigaos__) || defined(__MORPHOS__)
+/* libnix: main() runs on a stack of this size (the shell's default is 4 KB) */
+unsigned long __stack = 262144;
+#elif defined(__AROS__)
+/* AROS: main() runs on a stack of this size */
+int __stack = 524288;
+#endif
+#if defined(__amigaos__) || defined(__amigaos4__) || defined(__MORPHOS__) || defined(__AROS__)
+static const char __attribute__((used)) amiga_version[] =
+  "$VER: gfasm " GFASM_VERSION " (" GFASM_DATE ")";
+#endif
+
 cpu_module *cpu = &cpu_m68k;
 syntax_module *syntax = &syntax_mot;
 const char *input_name;
@@ -95,8 +110,9 @@ int main(int argc, char **argv)
   outmod = &out_bin;   /* vasm default would be "test"; bin is our default */
   {
     /* called as vasm<cpu>_<syntax>? */
-    const char *b = strrchr(argv[0], '/');
-    b = b ? b + 1 : argv[0];
+    char *b = xstrdup(path_base(argv[0]));
+    size_t bl = strlen(b);
+    if (bl > 4 && !stricmp_(b + bl - 4, ".exe")) b[bl - 4] = 0;   /* Windows */
     if (!strncmp(b, "vasm", 4)) {
       const char *u = strchr(b, '_');
       if (u) {
@@ -106,6 +122,7 @@ int main(int argc, char **argv)
         select_syntax(u + 1);
       }
     }
+    free(b);
     for (i = 1; i < argc; i++) {
       if (!strncmp(argv[i], "-cpu=", 5) && !select_cpu(argv[i] + 5)) {
         fprintf(stderr, "fatal error: cpu <%s> not supported\n", argv[i] + 5); return 1;
@@ -200,8 +217,8 @@ int main(int argc, char **argv)
     printf("gfasm %s (c) 2026 DalsinAI - MIT licensed, vasm-compatible\n", GFASM_VERSION);
 
   {
-    const char *sl = strrchr(input_name, '/');
-    compile_dir = sl ? xstrndup(input_name, sl - input_name + 1) : xstrdup("");
+    const char *base = path_base(input_name);
+    compile_dir = xstrndup(input_name, base - input_name);
   }
   syntax->init();
   cpu->define_symbols();
@@ -258,7 +275,7 @@ int main(int argc, char **argv)
 /* minimal listing: address and source line per atom */
 void write_listing(void)
 {
-  FILE *f = fopen(list_name, "w");
+  FILE *f = fopen(list_name, "wb");   /* the same bytes on every host */
   section *s;
   if (!f) { error("can't open listing file"); return; }
   for (s = sec_first; s; s = s->next) {

@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <math.h>
 
 /* ------------------------------------------------------------ symbols */
 #define HSIZE 65536
@@ -176,65 +175,40 @@ void add_label_atom(symbol *s)
 }
 
 /* ------------------------------------------------------------ floats */
-void encode_float(int ftype, long double f, uint8_t *o)
+void encode_float(int ftype, fval f, uint8_t *o)
 {
   int i;
   if (ftype == 's') {
-    float x = (float)f;
-    uint32_t u;
-    memcpy(&u, &x, 4);
+    uint32_t u = f_to_single(f);
     for (i = 0; i < 4; i++) o[i] = u >> (24 - 8 * i);
   } else if (ftype == 'd') {
-    double x = (double)f;
-    uint64_t u;
-    memcpy(&u, &x, 8);
-    for (i = 0; i < 8; i++) o[i] = u >> (56 - 8 * i);
+    for (i = 0; i < 8; i++) o[i] = f >> (56 - 8 * i);
   } else if (ftype == 'x') {
-    int sign = signbit(f) ? 1 : 0;
-    int ex, e;
-    uint64_t mant = 0;
-    long double m;
+    /* the double's fields moved into the extended format: sign, exponent
+     * rebiased from 1023 to 16383, the explicit integer bit set and the 52
+     * fraction bits on top.  vasm does it this way for every value but
+     * zero, so infinities, NaNs and denormals come out as it writes them. */
+    uint64_t mant;
+    int e;
     memset(o, 0, 12);
-    if (sign) f = -f;
-    if (isnan(f)) {
-      e = 0x7fff; mant = 0xffffffffffffffffULL;
-    } else if (isinf(f)) {
-      e = 0x7fff; mant = 0;
-    } else if (f == 0) {
+    if (f_iszero(f)) {
       e = 0; mant = 0;
     } else {
-      m = frexpl(f, &ex);  /* 0.5 <= m < 1 */
-      for (i = 0; i < 64; i++) {
-        m *= 2;
-        mant <<= 1;
-        if (m >= 1) { mant |= 1; m -= 1; }
-      }
-      if (m > 0.5L || (m == 0.5L && (mant & 1))) {
-        mant++;
-        if (mant == 0) { mant = 0x8000000000000000ULL; ex++; }
-      }
-      e = ex - 1 + 16383;
-      if (e <= 0) {   /* denormal */
-        int sh = 1 - e;
-        mant = sh < 64 ? mant >> sh : 0;
-        e = 0;
-      }
+      e = (int)((f >> 52) & 0x7ff) - 1023 + 16383;
+      mant = 0x8000000000000000ULL | ((f & 0xfffffffffffffULL) << 11);
     }
-    o[0] = (sign << 7) | ((e >> 8) & 0x7f);
+    o[0] = (uint8_t)((f >> 63) << 7) | ((e >> 8) & 0x7f);
     o[1] = e & 0xff;
     for (i = 0; i < 8; i++) o[4 + i] = mant >> (56 - 8 * i);
   } else if (ftype == 'p') {
-    /* packed decimal: 17 significant digits of the double value */
-    char buf[64], *q;
-    int ex, k, d = 0;
-    uint8_t dig[17];
+    /* packed decimal: the 17 significant digits of the double value */
+    int ex, k;
+    char dig[17];
     memset(o, 0, 12);
-    if (f == 0) return;
-    snprintf(buf, sizeof(buf), "%.16e", (double)f);
-    q = buf;
-    if (*q == '-') { o[0] |= 0x80; q++; }
-    for (; *q && *q != 'e'; q++) if (*q >= '0' && *q <= '9' && d < 17) dig[d++] = *q - '0';
-    ex = *q == 'e' ? atoi(q + 1) : 0;
+    if (f_iszero(f)) return;
+    if (f_sign(f)) o[0] |= 0x80;
+    if (f_isnan(f) || f_isinf(f)) return;
+    f_to_dec17(f, dig, &ex);
     if (ex < 0) { o[0] |= 0x40; ex = -ex; }
     o[0] |= (ex / 100) % 10;
     o[1] = (((ex / 10) % 10) << 4) | (ex % 10);
@@ -276,6 +250,7 @@ static void put_be(bbuf *b, uval v, int bytes)
 }
 
 /* data values for dc.x */
+static int data_item;   /* emit_data_value() is called for a dc item, not a dcb fill */
 static void emit_data_value(section *s, bbuf *b, expr *e, int esize,
                             int ftype, int reldiff, ival pc)
 {
@@ -306,7 +281,14 @@ static void emit_data_value(section *s, bbuf *b, expr *e, int esize,
     bb_put(b, fb, esize);
     return;
   }
-  if (r.isflt) { r.v = (ival)r.f; r.isflt = 0; }
+  if (r.isflt && esize <= 2 && data_item) {
+    /* vasm: a float in byte or word data is an error (in a dcb fill it is
+     * truncated) */
+    error("data has illegal type");
+    bb_fill(b, 0, esize);
+    return;
+  }
+  if (r.isflt) { r.v = f_to_int(r.f); r.isflt = 0; }
   if (r.bad && e->op == X_SUB && !reldiff) {
     /* sym - <label in this section>: pc-relative data */
     eres la, rb;
@@ -505,9 +487,12 @@ void finalize_sections(void)
         int i;
         for (i = 0; i < a->u.data.n; i++) {
           dataitem *it = &a->u.data.items[i];
-          if (it->e)
+          if (it->e) {
+            data_item = 1;
             emit_data_value(s, b, it->e, a->u.data.esize, a->u.data.ftype,
                             a->u.data.reldiff, a->off);
+            data_item = 0;
+          }
           else {
             int pad = it->slen % a->u.data.esize;
             bb_put(b, it->str, it->slen);
@@ -593,7 +578,7 @@ int ignore_mult_inc;
 void add_incpath(const char *p)
 {
   incpaths = xrealloc(incpaths, (nincpaths + 1) * sizeof(char *));
-  incpaths[nincpaths++] = xstrdup(p);
+  incpaths[nincpaths++] = path_host(p);
 }
 
 static int file_exists(const char *p)
@@ -607,17 +592,16 @@ static char *join_path(const char *dir, const char *name)
 {
   size_t l = strlen(dir);
   if (!l) return xstrdup(name);
-  if (dir[l - 1] == '/' || dir[l - 1] == ':')
+  if (path_is_sep((unsigned char)dir[l - 1]))
     return strprintf("%s%s", dir, name);
   return strprintf("%s/%s", dir, name);
 }
 
-char *find_include(const char *name, int bin)
+static char *find_include_(const char *name)
 {
   int i;
   char *p;
-  (void)bin;
-  if (name[0] == '/' ) return file_exists(name) ? xstrdup(name) : NULL;
+  if (path_is_absolute(name)) return file_exists(name) ? xstrdup(name) : NULL;
   /* 1. compile directory, 2. current directory */
   if (compile_dir && *compile_dir) {
     p = join_path(compile_dir, name);
@@ -629,7 +613,7 @@ char *find_include(const char *name, int bin)
     p = join_path(incpaths[i], name);
     if (file_exists(p)) return p;
     free(p);
-    if (compile_dir && *compile_dir && incpaths[i][0] != '/') {
+    if (compile_dir && *compile_dir && !path_is_absolute(incpaths[i])) {
       char *q = join_path(compile_dir, incpaths[i]);
       p = join_path(q, name);
       free(q);
@@ -638,6 +622,14 @@ char *find_include(const char *name, int bin)
     }
   }
   return NULL;
+}
+
+char *find_include(const char *name, int bin)
+{
+  char *h = path_host(name), *r = find_include_(h);
+  (void)bin;
+  free(h);
+  return r;
 }
 
 /* ------------------------------------------------------------ macros */

@@ -71,8 +71,8 @@ static int std_number(const char **pp, expr **out)
       return *out ? 1 : -1;
     }
     if ((*p == '.' && isdigit((unsigned char)p[1])) || *p == 'e' || *p == 'E') {
-      char *end;
-      long double f = (long double)strtod(s, &end);
+      const char *end;
+      fval f = f_from_dec(s, &end);
       if (end > p || *p == '.') { *pp = end; *out = new_flt(f); return 1; }
     }
     if ((*p == 'b' || *p == 'f' || *p == 'B' || *p == 'F') && !isalnum((unsigned char)p[1]) && p[1] != '_' && p[1] != '$') {

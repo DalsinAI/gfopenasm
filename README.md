@@ -6,8 +6,12 @@ licence. It assembles for Motorola 68k, PowerPC, ARM, x86, Z80 and
 options and the same source syntax, and it writes the same object files,
 byte for byte.
 
-It is one small program in portable C11 with no dependencies, so it
-builds anywhere a C compiler runs.
+It is one small program in portable C11 with no dependencies. Ready-made
+binaries are there for Linux, Windows, AmigaOS 3.x (68k), AmigaOS 4
+(PowerPC) and AROS (x86-64), and it builds anywhere a C compiler runs.
+It writes the same bytes on every host: float constants are computed in
+software, so even the FPU and the C library of the host make no
+difference.
 
 ## CPUs, syntaxes and output formats
 
@@ -44,7 +48,7 @@ build with vasm can build with gfopenasm too.
 
 ### How compatibility is tested
 
-- **Test corpus** (`make test`): 63 source files in `tests/corpus`, about
+- **Test corpus** (`make test`): 67 source files in `tests/corpus`, about
   40,000 lines covering all six CPUs plus directive, macro and output
   format tests. The expected output of each file was made with vasm 2.0f
   and is committed in `tests/expected`, so `make test` needs no vasm.
@@ -56,6 +60,10 @@ build with vasm can build with gfopenasm too.
   repositories are pinned by commit in `tests/fetch-realworld.sh`; they
   are only test input and are not part of this repository.
 
+- **Every platform**: each release binary runs the corpus on its own
+  system (or under qemu or wine) before it ships, and the real-world set
+  too where the host can run it; see [Download](#download).
+
 See [tests/README.md](tests/README.md) for how to run both. The
 differences that remain are listed in
 [docs/DIFFERENCES.md](docs/DIFFERENCES.md). Anything else that differs
@@ -65,14 +73,26 @@ from vasm is a bug: please report it.
 
 Release binaries are on the
 [releases page](https://github.com/DalsinAI/gfopenasm/releases), with a
-`SHA256SUMS` file:
+`SHA256SUMS` file. Each archive holds `gfasm`, the licence, this README
+and an `INSTALL.txt` for its system.
 
-| Platform | File |
-|---|---|
-| Linux x86-64 (static, any distribution) | `gfopenasm-<version>-linux-x86_64.tar.xz` |
+| System | File | Tested |
+|---|---|---|
+| Linux x86-64 (static, any distribution) | `gfopenasm-<version>-linux-x86_64.tar.xz` | corpus and real-world sources |
+| Linux arm64 (static) | `gfopenasm-<version>-linux-arm64.tar.xz` | corpus and real-world sources, under qemu |
+| Windows x86-64 | `gfopenasm-<version>-windows-x86_64.zip` | corpus (also with Windows paths) and real-world sources, under wine |
+| AmigaOS 3.x, 68000 or better | `gfopenasm-<version>-amigaos-m68k.lha` | corpus and real-world sources on AmigaOS 3.2 (an emulated A1200), with a 4 KB shell stack |
+| AmigaOS 4.1, PowerPC | `gfopenasm-<version>-amigaos4-ppc.lha` | not run on AmigaOS 4 yet (see below) |
+| AROS x86-64 (ABI v11) | `gfopenasm-<version>-aros-x86_64.lha` | built on AROS with its own gcc; corpus and real-world sources on AROS 2026.09 (Linux-hosted) |
 
-On any other system, build it from source (below): it takes a few
-seconds.
+The AmigaOS 4 build is made with the AmigaOS 4 SDK's gcc and newlib, but
+we have no AmigaOS 4 system to run it on yet. The same source passes the
+corpus and the real-world sources on big-endian PowerPC Linux, so it is
+expected to work; reports are welcome.
+
+There is no macOS or MorphOS binary, because we cannot test one; build
+from source there (below). On any other system, build from source too: it
+takes a few seconds.
 
 ## Usage
 
@@ -109,7 +129,29 @@ You need a C11 compiler and `make`; there are no other dependencies.
     make test       # assembles the test corpus and compares the output
 
 Then copy `gfasm` to a directory on your `PATH`, and add links under the
-vasm names you need.
+vasm names you need. This works on Linux and the BSDs; on macOS (with the
+Xcode command line tools) it should work the same way, but we have not
+tested it.
+
+The release binaries are cross-compiled with the scripts in `ci/`:
+
+    sh ci/build.sh TARGET OUTDIR     # one target, e.g. windows-x86_64
+    sh ci/test.sh TARGET OUTDIR      # its corpus run (under qemu or wine)
+    sh ci/package.sh VERSION TARGET OUTDIR DISTDIR
+
+| Target | Compiler |
+|---|---|
+| `linux-x86_64`, `linux-arm64` | gcc, `aarch64-linux-gnu-gcc` (static) |
+| `windows-x86_64` | `x86_64-w64-mingw32-gcc` (mingw-w64) |
+| `amigaos-m68k` | `m68k-amigaos-gcc` with libnix (for example from [amiga-gcc](https://github.com/bebbo/amiga-gcc)); only the C library's headers are needed, no NDK |
+| `amigaos4-ppc` | `ppc-amigaos-gcc` with the AmigaOS 4 SDK (for example from [adtools](https://github.com/sba1/adtools)) |
+| `aros-x86_64` | built on AROS itself: `sh ci/aros-hosted.sh OUTDIR` boots Linux-hosted AROS with its SDK under Xvfb, compiles there and runs the corpus |
+
+For MorphOS, `ppc-morphos-gcc` from the MorphOS SDK should build it with
+`make CC=ppc-morphos-gcc`; we have not tried it.
+
+Two builds of the same source with the same compiler give the same bytes
+(the release builds are made twice and compared).
 
 ## Licence
 

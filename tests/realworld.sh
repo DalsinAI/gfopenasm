@@ -10,6 +10,7 @@
 top=$(cd "$(dirname "$0")/.." && pwd)
 G="${GFASM:-$top/gfasm}"
 case "$G" in /*) ;; */*) G="$PWD/$G";; esac
+RUN=${GFASM_RUN:-}   # e.g. wine, qemu-ppc-static
 : "${VASM:?set VASM to the vasm binary to compare with}"
 list=${1:?usage: realworld.sh tests/realworld-<cpu>.list}
 case "$VASM" in /*) ;; */*) VASM="$PWD/$VASM";; esac
@@ -29,7 +30,7 @@ while IFS= read -r line; do
   if ! ( cd "$dir" && "$VASM" -quiet $opts -o "$tmp/v.o" "$base" ) >/dev/null 2>&1; then
     echo "SKIP (vasm fails) $src"; skip=$((skip+1)); continue
   fi
-  ( cd "$dir" && "$G" -quiet $opts -o "$tmp/g.o" "$base" ) >"$tmp/g.log" 2>&1
+  ( cd "$dir" && $RUN "$G" -quiet $opts -o "$tmp/g.o" "$base" ) >"$tmp/g.log" 2>&1
   if cmp -s "$tmp/v.o" "$tmp/g.o"; then
     echo "PASS $src"; pass=$((pass+1))
   else

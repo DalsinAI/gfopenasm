@@ -573,7 +573,7 @@ static int imm_const(xopnd *o, ival *v)
 {
   eres r;
   eval_expr(o->e, &r);
-  if (r.isflt) { r.v = (ival)r.f; }
+  if (r.isflt) { r.v = f_to_int(r.f); }
   *v = r.v;
   return r.defined && !r.sec && !r.ext && !r.bad;
 }
@@ -694,7 +694,7 @@ static void field(bbuf *b, expr *e, int bytes, section *s, ival pc, int enc, int
 {
   eres r;
   eval_expr(e, &r);
-  if (r.isflt) r.v = (ival)r.f;
+  if (r.isflt) r.v = f_to_int(r.f);
   if (r.sec || r.ext) {
     if (enc) {
       if (r.bad) error("illegal relocation");

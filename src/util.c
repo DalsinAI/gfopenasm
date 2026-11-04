@@ -161,5 +161,67 @@ srcfile *load_source(const char *name, const char *path)
   return sf;
 }
 
+/* ------------------------------------------------------- host paths */
+#if defined(_WIN32)
+#define HOST_DOS 1
+#elif defined(__amigaos__) || defined(__amigaos4__) || defined(__MORPHOS__) || defined(__AROS__)
+#define HOST_AMIGA 1
+#endif
+
+int path_is_sep(int c)
+{
+#if defined(HOST_DOS)
+  return c == '/' || c == '\\' || c == ':';
+#elif defined(HOST_AMIGA)
+  return c == '/' || c == ':';
+#else
+  return c == '/';
+#endif
+}
+
+int path_is_absolute(const char *p)
+{
+#if defined(HOST_DOS)
+  return p[0] == '/' || p[0] == '\\' || (p[0] && p[1] == ':');
+#elif defined(HOST_AMIGA)
+  return strchr(p, ':') != NULL;    /* "volume:dir/file"; a leading '/' is the parent */
+#else
+  return p[0] == '/';
+#endif
+}
+
+/* Sources written on Unix or Windows name the parent directory "..".  On
+ * AmigaOS, MorphOS and AROS the parent is an empty part ("/x", "a//x"), so
+ * "." and ".." parts are rewritten; elsewhere the name is used as it is. */
+char *path_host(const char *p)
+{
+#if defined(HOST_AMIGA)
+  char *o = xmalloc(strlen(p) + 1), *q = o;
+  while (*p) {
+    if (p[0] == '.' && (p[1] == '/' || !p[1]) && (q == o || q[-1] == '/' || q[-1] == ':')) {
+      p += p[1] ? 2 : 1;                       /* "./" */
+    } else if (p[0] == '.' && p[1] == '.' && (p[2] == '/' || !p[2]) &&
+               (q == o || q[-1] == '/' || q[-1] == ':')) {
+      *q++ = '/';                              /* "../" -> "/" */
+      p += p[2] ? 3 : 2;
+    } else {
+      while (*p && *p != '/') *q++ = *p++;
+      if (*p) *q++ = *p++;
+    }
+  }
+  *q = 0;
+  return o;
+#else
+  return xstrdup(p);
+#endif
+}
+
+const char *path_base(const char *p)
+{
+  const char *b = p;
+  for (; *p; p++) if (path_is_sep((unsigned char)*p)) b = p + 1;
+  return b;
+}
+
 int is_ws(int c) { return c == ' ' || c == '\t'; }
 const char *skip_ws(const char *p) { while (is_ws(*p)) p++; return p; }

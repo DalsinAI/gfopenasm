@@ -14,6 +14,11 @@ needs no vasm, and real-world sources that are compared with a live vasm.
 - `run.sh` assembles everything and compares the output byte for byte.
   Each source is assembled three times: from its own directory, by a
   relative path and by its absolute path. It does not need vasm.
+- `GFASM` names the program to test and `GFASM_RUN` a command to run it
+  with, so the same corpus checks a cross-built gfasm:
+  `GFASM=out/gfasm.exe GFASM_RUN=wine GFASM_SRCPATH=win sh tests/run.sh`
+  (`GFASM_SRCPATH=win` also names each source by a Windows path).
+  `ci/test.sh` does this for each release target.
 
 How the corpus files are made:
 
@@ -29,6 +34,7 @@ How the corpus files are made:
 | `x_*` | `gen/mk_x86.sh` | x86 directives, ELF, bin and `.code16` |
 | `z80_insn0`, `o_z80_dirs` | `gen/gen_z80.py`, by hand | Z80 instructions, oldstyle directives |
 | `m6502_*`, `o_6502_dirs` | `gen/gen_6502.py`, by hand | 6502 and WDC 65C02 instructions, oldstyle features, `-cbm-prg` |
+| `d_float*` | by hand, lines that vasm accepts | float constants: arithmetic, extended and packed formats, infinities, NaNs and denormals, the choice of immediate size, with and without optimisation; and two errors |
 
 The `gen_*.py` generators build candidate lines and keep only the ones
 that vasm accepts, so the corpus holds valid code only. The generated
@@ -58,7 +64,8 @@ Each `realworld-*.list` file has one test per line,
 `<options> | <source>`, where `@RW@` stands for the clone directory and
 `<dir>//<path>` means that the source is assembled from `<dir>`.
 `realworld.sh` assembles each source with vasm and with gfasm and
-compares the outputs. Run it with gfasm under the matching vasm name:
+compares the outputs (`GFASM_RUN` works here too). Run it with gfasm
+under the matching vasm name:
 
     mkdir -p names && for n in vasmm68k_mot vasmppc_std vasmarm_std vasmx86_std vasmz80_oldstyle vasm6502_oldstyle; do ln -sf ../gfasm names/$n; done
     GFASM=names/vasmppc_std VASM=$VASM_DIR/vasmppc_std sh tests/realworld.sh tests/realworld-ppc.list
@@ -75,7 +82,7 @@ keeps the first set of options that vasm accepts.
 
 | Set | Result |
 |---|---|
-| 68k corpus | 30/30 files match (about 18,000 instruction lines plus 16 directive and output tests) |
+| 68k corpus | 34/34 files match (about 18,000 instruction lines plus 20 directive, float and output tests) |
 | 68k real-world (FPGAArcade amiga_code, KONEY, StefanKubsch AmigaCoding, Hamazing, hukkax, amiga-boing, bumbershoot, rosetta-pi-spigot, amiga_asmdev_workflow, amiga-font-luett) | 93/93 match |
 | PowerPC corpus | 10/10 files match (about 7,400 instruction lines with AltiVec and simplified mnemonics, plus std/mot, ELF, hunk and bin tests) |
 | PowerPC real-world (SonnetAmiga WarpOS sources, EEC `ppcifuncs.asm`) | 4/4 match |

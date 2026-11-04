@@ -101,10 +101,12 @@ static void wname_type(int type, const char *n)
 
 static const char *basename_(const char *p)
 {
-  const char *s = strrchr(p, '/');
-  const char *t = strrchr(p, ':');
-  if (t && (!s || t > s)) s = t;
-  return s ? s + 1 : p;
+  /* vasm names the unit and the ELF file symbol by the file name alone:
+   * after the last '/' or ':' (and '\\' on Windows) */
+  const char *b = p;
+  for (; *p; p++)
+    if (*p == '/' || *p == ':' || path_is_sep((unsigned char)*p)) b = p + 1;
+  return b;
 }
 
 /* ------------------------------------------------------- hunk */

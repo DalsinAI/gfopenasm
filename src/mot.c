@@ -9,7 +9,7 @@
 #include <ctype.h>
 
 extern int ident_dots;
-void encode_float(int ftype, long double f, uint8_t *o);
+void encode_float(int ftype, fval f, uint8_t *o);
 
 int opt_esc, opt_spaces, opt_align, opt_devpac, opt_phxass, opt_localu;
 int opt_warncomm;
@@ -73,8 +73,8 @@ static int mot_number(const char **pp, expr **out)
     if ((*p == '.' && isdigit((unsigned char)p[1])) ||
         ((*p == 'e' || *p == 'E') && (isdigit((unsigned char)p[1]) ||
          ((p[1] == '-' || p[1] == '+') && isdigit((unsigned char)p[2]))))) {
-      char *end;
-      long double f = (long double)strtod(s, &end);
+      const char *end;
+      fval f = f_from_dec(s, &end);
       *pp = end;
       *out = new_flt(f);
       return 1;
