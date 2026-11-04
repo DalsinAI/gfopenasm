@@ -4,8 +4,8 @@
  * Encodings from the public MOS 6500 programming manual and the
  * Rockwell/WDC 65C02 data sheets.  vasm behaviour (options, lo/hi
  * modifiers, zero-page optimisation, messages) from the vasm manual's
- * 6502 chapter and black-box comparison with a vasm binary; see
- * CLEAN-ROOM.md.  No vasm source was used. */
+ * 6502 chapter and comparison with vasm's output; see
+ * docs/REFERENCES.md. */
 #include "gfasm.h"
 #include <stdlib.h>
 #include <string.h>

@@ -1,4 +1,4 @@
-# Z80 (vasmz80_oldstyle): GFASM=$PWD/vasmz80_oldstyle VASM=$ORACLES/vasmz80_oldstyle sh tests/realworld.sh tests/realworld-z80.list
+# Z80 (vasmz80_oldstyle): GFASM=names/vasmz80_oldstyle VASM=$VASM_DIR/vasmz80_oldstyle sh tests/realworld.sh tests/realworld-z80.list
 -Fbin -dotdir | @RW@/QSmally_ZOS/io.s
 -Fbin | @RW@/QSmally_ZOS/stdlib.s
 -Fbin -dotdir | @RW@/QSmally_ZOS/zos.s

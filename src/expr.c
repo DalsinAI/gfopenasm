@@ -1,7 +1,7 @@
 /* gfasm - expression parser and evaluator.  MIT License.
  *
  * Semantics follow the vasm manual (operator set and priorities) and
- * black-box observations: comparisons and logical operators yield -1 for
+ * vasm's observed output: comparisons and logical operators yield -1 for
  * true, unary ! yields 1/0, and integer results are wrapped to the 32-bit
  * signed target address range after every operation. */
 #include "gfasm.h"
@@ -83,7 +83,7 @@ static int parse_charconst(const char **pp, ival *v)
       break;
     }
     if (c == '\\' && !opt_esc && char_bs_pair && p[1] && p[1] != q) {
-      /* oldstyle: "\\" is one backslash even without escapes (oracle) */
+      /* oldstyle: "\\" is one backslash even without escapes (as vasm does) */
       p += 2; val = (val << 8) | '\\'; n++; continue;
     }
     if (c == '\\' && opt_esc) {

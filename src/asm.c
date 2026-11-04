@@ -297,7 +297,7 @@ static void emit_data_value(section *s, bbuf *b, expr *e, int esize,
     return;
   }
   if (r.isflt && (esize == 4 || esize == 8)) {
-    /* float constant in integer data: IEEE bits (oracle) */
+    /* float constant in integer data: IEEE bits (as vasm does) */
     uint8_t fb[8];
     int i;
     encode_float(esize == 8 ? 'd' : 's', r.f, fb);
@@ -726,7 +726,7 @@ void push_file(const char *name)
     loaded[nloaded++] = f;
   }
   free(path);
-  if (src) uid_counter++;   /* include files consume a unique id (oracle) */
+  if (src) uid_counter++;   /* include files consume a unique id (as vasm does) */
   s = xcalloc(1, sizeof(*s));
   s->kind = SRC_FILE;
   s->file = f;

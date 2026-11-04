@@ -6,8 +6,7 @@
  * Architecture Programmer's Manual; ELF relocation numbers from the
  * System V ABI i386 supplement.  vasm behaviour (options, directives,
  * suffix rules, operand order, optimisations) from the vasm manual's
- * 80x86 chapter and black-box comparison with a vasm binary; see
- * CLEAN-ROOM.md.  No vasm source was used. */
+ * 80x86 chapter and comparison with vasm's output; see docs/REFERENCES.md. */
 #include "gfasm.h"
 #include <stdlib.h>
 #include <string.h>
@@ -401,7 +400,7 @@ typedef struct xt {
   int ext;            /* -1, 0..7, 8 = /r */
   int flags, sfx, nops;
   int cls[3], role[3];
-  int bugx;           /* oracle quirk: memory form puts this in modrm.reg and the register in rm */
+  int bugx;           /* as vasm does: memory form puts this in modrm.reg and the register in rm */
   struct xt *next;
 } xt;
 
@@ -523,7 +522,7 @@ static void build_tables(void)
         else {
           addf("f%s d8,%02x S o:STI -:ST0", n, 0xc0 + 8 * v);
           addf("f%s d8,%02x S o:STI", n, 0xc0 + 8 * v);
-          addf("f%s de,%02x", n, 0xc1 + 8 * v);     /* oracle: no operand = the pop form */
+          addf("f%s de,%02x", n, 0xc1 + 8 * v);     /* vasm: no operand = the pop form */
         }
         addf("fi%s de /%d m:M", n, v);
         addf("fi%ss de /%d m:M", n, v);
@@ -579,7 +578,7 @@ static int imm_const(xopnd *o, ival *v)
   return r.defined && !r.sec && !r.ext && !r.bad;
 }
 
-/* lax: register size may differ from the operation size (the oracle takes
+/* lax: register size may differ from the operation size (vasm takes
  * the size from the last register operand and converts the others) */
 static int cls_ok(int c, xopnd *o, int sz, int lax)
 {
@@ -740,7 +739,7 @@ static void modrm_mem(bbuf *b, int reg, xopnd *o, section *s, ival pc, int enc)
     else mod = 2;
     bb_byte(b, (mod << 6) | (reg << 3) | rm);
     if (mod == 1) { if (o->hasdisp) field(b, o->e, 1, s, pc, enc, 0); else bb_byte(b, 0); }
-    else if (mod == 2) field(b, o->e, 4, s, pc, enc, 0);   /* oracle: 32-bit displacement */
+    else if (mod == 2) field(b, o->e, 4, s, pc, enc, 0);   /* vasm: 32-bit displacement */
     return;
   }
   if (o->base < 0 && o->index < 0) {
@@ -793,7 +792,7 @@ static void emit_template(xinsn *ip, xmatch *m, section *s, ival pc, bbuf *b, in
   }
   for (i = 0; i < t->nops; i++)
     if (op[i]->kind == K_MEM && op[i]->seg >= 0) {
-      /* oracle: an override of the default segment is dropped */
+      /* vasm: an override of the default segment is dropped */
       int bp = op[i]->asize == 16 ? (op[i]->base == 5 || (op[i]->base < 0 && op[i]->index == 5))
                                   : (op[i]->base == 4 || op[i]->base == 5);
       int def = bp ? 2 : 3;
@@ -839,7 +838,7 @@ static int jdist(xinsn *ip, section *s, ival pc, ival *target, eres *r)
   if (r->ext || r->bad) return 0;
   if (r->sec == s) { *target = r->v; return r->defined; }
   if (!r->sec && (s->flags & SEC_ABS)) { *target = r->v - s->org; return r->defined; }
-  if (!r->sec) { *target = r->v; return r->defined; }   /* oracle: absolute = section offset */
+  if (!r->sec) { *target = r->v; return r->defined; }   /* vasm: absolute = section offset */
   return 0;
 }
 
@@ -853,7 +852,7 @@ static ival jump_size(xinsn *ip, section *s, ival pc)
   if (ip->jkind == J_LOOP) return 2;
   if (!known && r.defined) return ip->jkind == J_JMP ? 1 + w : 2 + w;
   if (!known) return 2;     /* forward reference: assume short first */
-  /* oracle: the range test uses the displacement of the long form */
+  /* vasm: the range test uses the displacement of the long form */
   d = tg - (pc + (ip->jkind == J_JMP ? 1 + w : 2 + w));
   if (d >= -128 && d <= 127) return 2;
   return ip->jkind == J_JMP ? 1 + w : 2 + w;

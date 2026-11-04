@@ -1,4 +1,4 @@
-# x86 (vasmx86_std): GFASM=$PWD/vasmx86_std VASM=$ORACLES/vasmx86_std sh tests/realworld.sh tests/realworld-x86.list
+# x86 (vasmx86_std): GFASM=names/vasmx86_std VASM=$VASM_DIR/vasmx86_std sh tests/realworld.sh tests/realworld-x86.list
 -Felf -mi386 | @RW@/robfinch_rf80386/software/test/Fibonacci.asm
 -Felf -mi386 | @RW@/robfinch_rf80386/software/test/bootrom.asm
 -Felf -mi386 | @RW@/robfinch_rf80386/software/test/call_m.asm

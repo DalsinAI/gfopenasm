@@ -1,7 +1,8 @@
 /* gfasm - Motorola syntax module (vasm "mot" compatible).  MIT License.
  *
  * Written from the vasm manual's description of the mot syntax module
- * (labels, comments, numbers, directives) and black-box comparison. */
+ * (labels, comments, numbers, directives) and comparison with vasm's
+ * output. */
 #include "gfasm.h"
 #include <stdlib.h>
 #include <string.h>
@@ -1364,7 +1365,7 @@ void mot_init(void)
   syntax_ident = mot_ident;
   syntax_pcexpr = mot_pc;
   sym_rs = sym_get("__RS");
-  sym_so = sym_rs;   /* vasm shares one counter for rs and so (oracle) */
+  sym_so = sym_rs;   /* vasm shares one counter for rs and so */
   sym_fo = sym_get("__FO");
   if (opt_devpac) {
     set_internal(sym_rs, 0);

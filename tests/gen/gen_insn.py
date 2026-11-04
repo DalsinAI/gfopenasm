@@ -4,8 +4,8 @@
 usage: gen_insn.py VASM outdir
 
 Candidate lines are mnemonic x size x addressing-mode combinations.  Each
-candidate is assembled on its own by the oracle (black box); only lines the
-oracle accepts are kept, so the resulting files contain valid code only.
+candidate is assembled on its own by vasm; only lines that vasm
+accepts are kept, so the resulting files contain valid code only.
 The generated files are committed; re-running this is only needed when
 the candidate lists change.
 """

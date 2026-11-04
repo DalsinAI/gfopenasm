@@ -1,9 +1,9 @@
-name: gfasm (build with gcc and clang, committed oracle corpus)
+name: gfasm (build with gcc and clang, test corpus)
 
-# NOT a GitHub Actions workflow (it lives outside .github/workflows): new DalsinAI repositories
-# can't use the self-hosted runners yet. Team 5's repo-ci.sh on daletop reads this job, runs its
-# `run:` steps in ubuntu:24.04 on amigachromebuild, and posts the result as the commit status
-# m68k-daletop (see CI.md). Keep it in the workflow format.
+# The check every pull request has to pass, in the GitHub Actions workflow
+# format: build gfasm with gcc and with clang with warnings as errors, run the
+# test corpus and check that the test scripts parse.  It needs nothing but an
+# ubuntu:24.04 container; see CONTRIBUTING.md for running it by hand.
 on:
   workflow_dispatch:
   pull_request:
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   gfasm:
-    runs-on: [self-hosted, guest-m68k]
+    runs-on: ubuntu-24.04
     container: ubuntu:24.04
     env:
       LANG: C.UTF-8
@@ -28,7 +28,7 @@ jobs:
         run: make clean && make CFLAGS="-O2 -std=c11 -Wall -Wextra -Wno-unused-parameter -Werror"
       - name: Build with clang (warnings are errors)
         run: make clean && make CC=clang CFLAGS="-O2 -std=c11 -Wall -Wextra -Wno-unused-parameter -Werror"
-      - name: Committed corpus (byte-for-byte against the stored vasm oracle output)
+      - name: Test corpus (byte for byte against the stored vasm 2.0f output)
         run: make test
       - name: Scripts parse
         run: |

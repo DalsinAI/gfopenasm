@@ -4,7 +4,8 @@
  * Environments for 32-bit Microprocessors" and the AltiVec Technology
  * Programming Environments Manual; ELF relocation numbers from the
  * PowerPC SVR4/EABI supplements.  vasm behaviour (option names, predefined
- * register symbols, hint bits) from the vasm manual and black-box tests. */
+ * register symbols, hint bits) from the vasm manual and comparison with
+ * vasm's output. */
 #include "gfasm.h"
 #include <stdlib.h>
 #include <string.h>
@@ -663,7 +664,7 @@ static uint32_t imm16(pinsn *ip, int i, int sgn, section *s, ival pc, int enc)
   int mod = ip->mod[i];
   int negate = 0;
   if (r.bad && ip->op[i]->op == X_NEG) {
-    /* subi rD,rA,label: vasm relocates +label but stores -label (oracle) */
+    /* subi rD,rA,label: vasm relocates +label but stores -label */
     eval_expr(ip->op[i]->l, &r);
     negate = 1;
   }
